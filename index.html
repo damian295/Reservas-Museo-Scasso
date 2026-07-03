@@ -97,11 +97,20 @@
 #detalles .toolbar.field-hidden{display:none!important}
 #detalles .two.one-col>div:first-child{max-width:520px}
 @media(max-width:640px){#detalles .two.one-col>div:first-child{max-width:none}}
+
+/* v3.7: ocultamiento robusto de campos solo escolares */
+body:not([data-program="escuelas"]) #detalles .toolbar,
+body:not([data-program="escuelas"]) #guidesWrap{display:none!important}
+body:not([data-program="escuelas"]) #detalles .two{grid-template-columns:1fr!important}
+body:not([data-program="escuelas"]) #detalles .two>div:first-child{max-width:520px}
+body[data-program="escuelas"] #detalles .toolbar{display:grid!important}
+body[data-program="escuelas"] #guidesWrap{display:block!important}
+
 </style>
 </head>
-<body>
+<body data-program="escuelas">
 <div class="wrap" id="appRoot">
-<header class="hero"><div class="hero-main"><img alt="Museo de Ciencias Naturales A. Scasso" class="logo" src="assets/logo-scasso.png"/><div class="kicker">Reservas online · versión 3.6</div><h1>Visitas y actividades del museo</h1><p class="lead">Elegí la propuesta, consultá disponibilidad y completá los datos. Al enviar, se registra una pre-reserva y recibís el detalle por correo.</p></div></header>
+<header class="hero"><div class="hero-main"><img alt="Museo de Ciencias Naturales A. Scasso" class="logo" src="assets/logo-scasso.png"/><div class="kicker">Reservas online · versión 3.7</div><h1>Visitas y actividades del museo</h1><p class="lead">Elegí la propuesta, consultá disponibilidad y completá los datos. Al enviar, se registra una pre-reserva y recibís el detalle por correo.</p></div></header>
 <nav class="steps"><a class="step" href="#propuesta"><span>1</span><strong>Elegí propuesta</strong></a><a class="step" href="#fecha"><span>2</span><strong>Fecha y horario</strong></a><a class="step" href="#datos"><span>3</span><strong>Datos del grupo</strong></a><a class="step" href="#resumen"><span>4</span><strong>Revisión y envío</strong></a></nav>
 <main class="layout"><section>
 <div class="panel" id="propuesta"><h2>1. ¿Qué querés reservar?</h2><div class="cards" id="programCards"></div></div>
@@ -210,11 +219,21 @@ function renderProgramInfo(){
 }
 function updateConditionalFields(){
   const school=selectedProgram==='escuelas';
+  document.body.setAttribute('data-program', selectedProgram);
   const toolbar=els.modality?els.modality.closest('.toolbar'):null;
   const peopleRow=els.people?els.people.closest('.two'):null;
-  if(toolbar)toolbar.classList.toggle('field-hidden',!school);
-  if(peopleRow)peopleRow.classList.toggle('one-col',!school);
-  if(els.guidesWrap)els.guidesWrap.classList.toggle('field-hidden',!school);
+  if(toolbar){
+    toolbar.classList.toggle('field-hidden',!school);
+    toolbar.style.display=school?'grid':'none';
+  }
+  if(peopleRow){
+    peopleRow.classList.toggle('one-col',!school);
+    peopleRow.style.gridTemplateColumns=school?'':'1fr';
+  }
+  if(els.guidesWrap){
+    els.guidesWrap.classList.toggle('field-hidden',!school);
+    els.guidesWrap.style.display=school?'block':'none';
+  }
   if(!school)els.guides.value=0;
   if(els.topicsWrap)els.topicsWrap.classList.toggle('field-hidden',!school);
   if(!school)$('topics').value='';
