@@ -96,7 +96,7 @@
 </head>
 <body>
 <div class="wrap" id="appRoot">
-<header class="hero"><div class="hero-main"><img alt="Museo de Ciencias Naturales A. Scasso" class="logo" src="assets/logo-scasso.png"/><div class="kicker">Reservas online · versión 3.4</div><h1>Visitas y actividades del museo</h1><p class="lead">Elegí la propuesta, consultá disponibilidad y completá los datos. Al enviar, se registra una pre-reserva y recibís el detalle por correo.</p></div></header>
+<header class="hero"><div class="hero-main"><img alt="Museo de Ciencias Naturales A. Scasso" class="logo" src="assets/logo-scasso.png"/><div class="kicker">Reservas online · versión 3.5</div><h1>Visitas y actividades del museo</h1><p class="lead">Elegí la propuesta, consultá disponibilidad y completá los datos. Al enviar, se registra una pre-reserva y recibís el detalle por correo.</p></div></header>
 <nav class="steps"><a class="step" href="#propuesta"><span>1</span><strong>Elegí propuesta</strong></a><a class="step" href="#fecha"><span>2</span><strong>Fecha y horario</strong></a><a class="step" href="#datos"><span>3</span><strong>Datos del grupo</strong></a><a class="step" href="#resumen"><span>4</span><strong>Revisión y envío</strong></a></nav>
 <main class="layout"><section>
 <div class="panel" id="propuesta"><h2>1. ¿Qué querés reservar?</h2><div class="cards" id="programCards"></div></div>
@@ -184,18 +184,17 @@ function selectProgram(key){
 }
 function selectedModalityObj(){const p=programs[selectedProgram];return p.modalities.find(m=>m.name===els.modality.value)||p.modalities[0]}
 function renderProgramInfo(){
-  const p=programs[selectedProgram];let extra='';
-  if(selectedProgram==='escuelas') extra='<br><span class="small">Los docentes no abonan entrada: 1 acompañante cada 8 alumnos. Para grupos mayores a 30 alumnos se recomienda dividir la reserva.</span>';
-  if(selectedProgram==='publico') extra='<br><span class="small">Público general previsto para octubre de 2026, los viernes, con inscripción previa.</span>';
-  if(selectedProgram==='hielo') extra='<br><span class="small">Se puede elegir uno, varios o los cinco encuentros. Si se eligen los cinco, se aplica el combo semanal con descuento.</span>';
-  if(selectedProgram==='mundos') extra='<br><span class="small">Menores de 3 años sin cargo. El pase completo aplica descuento y cubre los nueve días.</span>';
-  if(selectedProgram==='explorando') extra='<br><span class="small">Esta propuesta todavía no tiene fechas de reserva habilitadas.</span>';
-  els.info.innerHTML=`<strong>${p.title}.</strong> ${p.intro}<br><span class="small">Capacidad orientativa: ${p.capacity} participantes por grupo o franja.</span>${p.accepting?'<span class="capacity-line">El cupo restante aparece como contador visible en cada turno con cupo.</span>':'<span class="capacity-line">Próximamente: fechas, cupos y valores a confirmar.</span>'}${extra}`;
-  els.modality.innerHTML=p.modalities.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
-  els.groupType.innerHTML=p.groupOptions.map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
-  els.groupTypeLabel.textContent=selectedProgram==='escuelas'?'Tipo de institución':'Tipo de visitante o grupo';
-  els.peopleLabel.textContent=selectedProgram==='mundos'?'Adultos que pagan':'Cantidad de participantes';
-  els.submitBtn.disabled=!p.accepting;updateConditionalFields();renderSpecialOptions();
+  const p=programs[selectedProgram];
+  let extra='';
+  let capacityText='';
+  if(selectedProgram==='escuelas') capacityText='<br><span class="small">Grupo sugerido: hasta 30 alumnos. Si el grupo supera esa cantidad, el formulario avisa cuántos grupos conviene organizar.</span>';
+  else if(selectedProgram==='publico') capacityText='<br><span class="small">Cupo por turno: 20 personas. El contador aparece solamente cuando hay dato real de cupo disponible.</span>';
+  else if(selectedProgram==='hielo') capacityText='<br><span class="small">Cupo según taller: 20 participantes para 7 a 12 años y 25 para 3 a 6 años.</span>';
+  else if(selectedProgram==='mundos') capacityText='<br><span class="small">Actividad especial con modalidad por pase o por días particulares.</span>';
+  else capacityText='<br><span class="small">Próximamente: fechas, cupos y valores a confirmar.</span>';
+  if(selectedProgram==='hielo') extra='<br><span class="small">Hay dos propuestas por edad. Primero elegí el taller y después la fecha o encuentros.</span>';
+  if(selectedProgram==='mundos') extra='<br><span class="small">El pase completo incluye todos los días disponibles de las jornadas. Las actividades puntuales se seleccionan como días particulares.</span>';
+  els.info.innerHTML=`<strong>${p.title}.</strong> ${p.intro}${capacityText}${extra}`;
 }
 function updateConditionalFields(){
   const school=selectedProgram==='escuelas';
@@ -271,7 +270,7 @@ function renderCalendar(){
   const year=viewDate.getFullYear(), month=viewDate.getMonth(); els.monthTitle.textContent=new Intl.DateTimeFormat('es-AR',{month:'long',year:'numeric'}).format(viewDate).replace(/^./,c=>c.toUpperCase());
   const first=new Date(year,month,1), start=new Date(year,month,1-((first.getDay()+6)%7)); let html='';
   for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const key=ymd(d), inMonth=d.getMonth()===month, past=isPast(key), isToday=(key===ymd(today)), slots=past?[]:(currentSlots[key]||[]);html+=`<div class="day ${inMonth?'':'muted'} ${past?'past':''} ${isToday?'today':''}" data-date="${key}"><div class="n">${d.getDate()}</div>`;
-    if(slots.length){html+=slots.map(([time,available,remaining])=>{const multiActive=selectedDates.includes(key);const active=(selectedDate===key&&selectedSlot===time)||multiActive;const cls=!available?'full':active?'active combo':'';const showRemaining=Number.isFinite(Number(remaining));const adjustedRemaining=showRemaining?Math.max(0,Number(remaining)-selectedPlacesForSlot(key,time)):remaining;const label=!available?'Completo':selectedProgram==='mundos'?(active?'Incluido':'Elegir'):(active?`✓ ${time}`:`${time}`);return `<button type="button" class="slot ${cls} ${showRemaining?'has-quota':''}" ${(!available||past)?'disabled':''} data-date="${key}" data-time="${time}"><span class="slot-time">${label}</span>${available&&showRemaining?`<span class="quota-badge">${adjustedRemaining} cupos</span>`:''}</button>`}).join('')}
+    if(slots.length){html+=slots.map(([time,available,remaining])=>{const multiActive=selectedDates.includes(key);const active=(selectedDate===key&&selectedSlot===time)||multiActive;const cls=!available?'full':active?'active combo':'';const hasRealRemaining=(remaining!==null&&remaining!==undefined&&remaining!==''&&Number.isFinite(Number(remaining)));const showRemaining=hasRealRemaining&&selectedProgram!=='escuelas';const adjustedRemaining=showRemaining?Math.max(0,Number(remaining)-selectedPlacesForSlot(key,time)):remaining;const label=!available?'Completo':selectedProgram==='mundos'?(active?'Incluido':'Elegir'):(active?`✓ ${time}`:`${time}`);return `<button type="button" class="slot ${cls} ${showRemaining?'has-quota':''}" ${(!available||past)?'disabled':''} data-date="${key}" data-time="${time}"><span class="slot-time">${label}</span>${available&&showRemaining?`<span class="quota-badge">${adjustedRemaining} cupos</span>`:''}</button>`}).join('')}
     else if(inMonth&&!past){html+='<button type="button" class="slot closed" disabled>Sin turno</button>'} html+='</div>'}
   els.days.innerHTML=html;
   document.querySelectorAll('.slot:not(.full):not(.closed)').forEach(b=>b.addEventListener('click',()=>handleSlotClick(b.dataset.date,b.dataset.time)));
@@ -285,7 +284,7 @@ function handleSlotClick(date,time){
   renderCalendar(); updateSummary();
 }
 function toggleInArray(arr,value){const idx=arr.indexOf(value);if(idx>=0)arr.splice(idx,1);else arr.push(value);arr.sort()}
-function renderMobileDayDetail(){const box=$('mobileDayDetail'); if(!box)return; if(!mobileFocusedDate){box.classList.add('hidden');return} const slots=currentSlots[mobileFocusedDate]||[]; box.classList.remove('hidden'); box.innerHTML=`<strong>${fmtDate(mobileFocusedDate)}</strong><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${slots.length?slots.map(([t,a,r])=>`<button type="button" class="slot ${!a?'full':''} ${Number.isFinite(Number(r))?'has-quota':''}" ${!a?'disabled':''} onclick="handleSlotClick('${mobileFocusedDate}','${t}')"><span class="slot-time">${a?t:'Completo'}</span>${a&&Number.isFinite(Number(r))?`<span class="quota-badge">${r} cupos</span>`:''}</button>`).join(''):'<span class="small">Sin turnos para seleccionar.</span>'}</div>`}
+function renderMobileDayDetail(){const box=$('mobileDayDetail'); if(!box)return; if(!mobileFocusedDate){box.classList.add('hidden');return} const slots=currentSlots[mobileFocusedDate]||[]; box.classList.remove('hidden'); box.innerHTML=`<strong>${fmtDate(mobileFocusedDate)}</strong><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${slots.length?slots.map(([t,a,r])=>{const show=(r!==null&&r!==undefined&&r!==''&&Number.isFinite(Number(r))&&selectedProgram!=='escuelas');return `<button type="button" class="slot ${!a?'full':''} ${show?'has-quota':''}" ${!a?'disabled':''} onclick="handleSlotClick('${mobileFocusedDate}','${t}')"><span class="slot-time">${a?t:'Completo'}</span>${a&&show?`<span class="quota-badge">${r} cupos</span>`:''}</button>`}).join(''):'<span class="small">Sin turnos para seleccionar.</span>'}</div>`}
 function groupCount(){return Math.ceil(Math.max(1,Number(els.people.value||1))/programs[selectedProgram].capacity)}
 function currentSelectionSlots(){
   if(selectedProgram==='hielo'){const cfg=getHieloConfig();return hieloSelected.filter(d=>!isPast(d)).map(fecha=>{const item=cfg.dates.find(x=>x.fecha===fecha)||{};return {fecha,horario:'15:00',titulo:item.titulo||cfg.label,detalle:item.detalle||'',edad:cfg.age,taller:cfg.label};});}
