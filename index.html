@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v5.1: envío por formulario POST + verificación por código; selects numéricos móviles -->
+<!-- v5.2: envío estable por JSONP y respaldo POST directo; selects móviles corregidos -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -286,7 +286,14 @@ function initCards(){
     btn.onclick=()=>selectProgram(btn.dataset.program);
   });
 }
-function setPeople(p,g,level){els.people.value=p;els.guides.value=g;if($('level'))$('level').value=level}
+function setPeople(p,g,level){
+  const maxPeople = selectedProgram==='publico'?20:(selectedProgram==='escuelas'?120:(selectedProgram==='mundos'?200:50));
+  const peopleValue = Math.max(1, Math.min(maxPeople, Number(p||1)));
+  if(els.people){ els.people.innerHTML = numberOptions(1, maxPeople, peopleValue); els.people.value = String(peopleValue); }
+  const guideValue = Math.max(0, Math.min(40, Number(g||0)));
+  if(els.guides){ els.guides.innerHTML = numberOptions(0, 40, guideValue); els.guides.value = String(guideValue); }
+  if($('level'))$('level').value=level;
+}
 function selectProgram(key){
   selectedProgram=key;
   document.body.dataset.program=key;viewDate=new Date(programs[key].startMonth);selectedDate=null;selectedSlot=null;selectedDates=[];mobileFocusedDate=null;
@@ -517,11 +524,41 @@ function ticketDocument(data, paid=false){const product=ticketProductTitle(data)
 function downloadTicketFile(data){const blob=new Blob([ticketDocument(data)],{type:'text/html;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`ticket-${data.codigo_reserva}.html`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
 function printTicket(data){const w=window.open('','_blank');w.document.open();w.document.write(ticketDocument(data));w.document.close();w.focus();setTimeout(()=>w.print(),400)}
 function renderTicket(data){lastTicketData=data;const db=$('downloadCurrentTicket'),pb=$('printCurrentTicket');if(db){db.disabled=false;db.classList.remove('hidden')}if(pb){pb.disabled=false;pb.classList.remove('hidden')}els.ticketBox.classList.remove('hidden');const visual=ticketProgramVisual(data.programa_id);els.ticketBox.innerHTML=`<div class="ticket-pro" style="--ticket-overlay:linear-gradient(90deg,rgba(255,248,223,.97),rgba(255,253,248,.94) 45%,rgba(255,253,248,.84) 70%,rgba(255,253,248,.78) 100%), url('${visual}') center/cover no-repeat"><div class="ticket-head"><div><div class="ticket-kicker">Museo de Ciencias Naturales A. Scasso</div><div class="ticket-title">Ticket provisorio de pre-reserva</div></div><img class="ticket-logo" src="${EMBEDDED_LOGO}" alt="Museo de Ciencias Naturales A. Scasso"></div><span class="ticket-code">${data.codigo_reserva}</span><div class="ticket-hero-main"><div class="ticket-product-box"><span class="ticket-label">Producto solicitado</span><div class="ticket-product-title">${ticketProductTitle(data)}</div>${ticketVariantText(data)?`<div class="ticket-variant">${ticketVariantText(data)}</div>`:''}<ul class="ticket-slots">${ticketSlotsList(data)}</ul></div><div class="ticket-price-box"><span class="ticket-label">Importe orientativo</span><div class="ticket-price">${ticketPriceText(data)}</div><span class="ticket-status">${data.estado}</span></div></div><div class="ticket-grid"><div class="ticket-meta-box"><h4>Datos del solicitante</h4><div class="ticket-meta-list"><div class="ticket-meta-item"><span>${ticketPersonLabel(data)}</span><strong>${data.responsable}</strong></div><div class="ticket-meta-item"><span>${ticketInstitutionLabel(data)}</span><strong>${data.institucion}</strong></div>${data.email?`<div class="ticket-meta-item"><span>Correo</span><strong>${data.email}</strong></div>`:""}<div class="ticket-meta-item"><span>Teléfono</span><strong>${data.telefono}</strong></div></div></div><div class="ticket-meta-box"><h4>Detalle de la reserva</h4><div class="ticket-meta-list"><div class="ticket-meta-item"><span>Propuesta</span><strong>${data.programa}</strong></div><div class="ticket-meta-item"><span>Modalidad</span><strong>${data.modalidad}</strong></div><div class="ticket-meta-item"><span>Participantes</span><strong>${data.participantes}</strong></div><div class="ticket-meta-item"><span>Fecha / horario</span><strong>${(data.fechas&&data.fechas.length===1)?ticketSlotLine(data.fechas[0],data.durationMinutes):slotsToText(data.fechas)}</strong></div></div></div></div><p class="ticket-note">Este comprobante queda pendiente hasta que Administración confirme el pago.</p></div>`}
-function submitReservationJSONP(data){return new Promise((resolve,reject)=>{const callbackName='scassoReserve_'+Date.now()+'_'+Math.random().toString(36).slice(2);const script=document.createElement('script');let finished=false;const timer=setTimeout(()=>{if(finished)return;finished=true;cleanup();reject(new Error('Tiempo de espera agotado al enviar la reserva. No se registró la solicitud.'))},60000);function cleanup(){clearTimeout(timer);try{delete window[callbackName]}catch(e){window[callbackName]=undefined}if(script.parentNode)script.parentNode.removeChild(script)}window[callbackName]=payload=>{if(finished)return;finished=true;cleanup();resolve(payload)};script.onerror=()=>{if(finished)return;finished=true;cleanup();reject(new Error('No se pudo conectar con Apps Script. No se registró la solicitud.'))};const params=new URLSearchParams({action:'reserve',callback:callbackName,payload:JSON.stringify(data),v:String(Date.now())});script.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();document.body.appendChild(script)})}
-function reservationStatusJSONP(code){return new Promise((resolve,reject)=>{const callbackName='scassoStatus_'+Date.now()+'_'+Math.random().toString(36).slice(2);const script=document.createElement('script');let finished=false;const timer=setTimeout(()=>{if(finished)return;finished=true;cleanup();reject(new Error('Tiempo de espera agotado al verificar la reserva.'))},30000);function cleanup(){clearTimeout(timer);try{delete window[callbackName]}catch(e){window[callbackName]=undefined}if(script.parentNode)script.parentNode.removeChild(script)}window[callbackName]=payload=>{if(finished)return;finished=true;cleanup();resolve(payload)};script.onerror=()=>{if(finished)return;finished=true;cleanup();reject(new Error('No se pudo consultar Apps Script.'))};const params=new URLSearchParams({action:'status',callback:callbackName,code:code,v:String(Date.now())});script.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();document.body.appendChild(script)})}
-function postReservationByHiddenForm(data){return new Promise((resolve,reject)=>{const iframe=document.createElement('iframe');const form=document.createElement('form');const targetName='scasso_post_'+Date.now()+'_'+Math.random().toString(36).slice(2);let done=false;iframe.name=targetName;iframe.style.cssText='position:absolute;width:1px;height:1px;left:-9999px;top:-9999px;border:0;opacity:0';form.style.display='none';form.method='POST';form.action=APPS_SCRIPT_ENDPOINT;form.target=targetName;function add(name,value){const input=document.createElement('input');input.type='hidden';input.name=name;input.value=value;form.appendChild(input)}function cleanup(){setTimeout(()=>{if(form.parentNode)form.parentNode.removeChild(form);if(iframe.parentNode)iframe.parentNode.removeChild(iframe)},250)}iframe.onload=()=>{if(done)return;done=true;cleanup();setTimeout(()=>resolve({sent:true}),1200)};add('payload',JSON.stringify(data));add('modo','formulario');document.body.appendChild(iframe);document.body.appendChild(form);try{form.submit();setTimeout(()=>{if(done)return;done=true;cleanup();resolve({sent:true,timeout:true})},9000)}catch(err){cleanup();reject(err)}})}
-async function submitReservationFormAndVerify(data){await postReservationByHiddenForm(data);const code=data.codigo_reserva||data.code;for(let i=0;i<8;i++){await new Promise(r=>setTimeout(r,i<3?1200:2200));try{const check=await reservationStatusJSONP(code);if(check&&check.ok&&check.registered&&check.calendar){return {ok:true,code:code,verified:true,message:'Solicitud registrada correctamente.'};}if(check&&check.ok&&check.registered&&!check.calendar){return {ok:false,message:'La solicitud quedó en registro, pero no entró al calendario interno de Administración. No se confirma la pre-reserva. Revisar permisos del calendario rojo.'};}}catch(e){if(i===7)throw e;}}return {ok:false,message:'No se encontró la reserva después del envío. No repitas la carga: revisá Apps Script y calendario antes de volver a intentar.'};}
-async function submitReservationRobust(data){try{return await submitReservationFormAndVerify(data);}catch(formErr){try{const r=await submitReservationJSONP(data);if(r&&r.ok)return r;return r||{ok:false,message:'No se pudo registrar la reserva.'};}catch(jsonpErr){throw new Error('No se pudo conectar con Apps Script. No se registró la solicitud. Revisar que Código.gs v5.1 esté implementado como nueva versión y que el endpoint responda action=ping.')}}}
+
+function compactReservationData(data){
+  const keep=['programa','programa_id','taller_id','taller_nombre','modalidad','tipo','fecha','horario','fecha_resumen','horario_resumen','fechas','durationMinutes','participantes','adultos','menores','acompanantes','grupos_necesarios','precio_estimado','responsable','telefono','email','institucion','dni','direccion','nivel','curso','ciudad','temas','accesibilidad','codigo_reserva','estado','timestamp'];
+  const out={};
+  keep.forEach(k=>{
+    const v=data[k];
+    if(v===undefined||v===null)return;
+    if(typeof v==='string'&&v.trim()==='')return;
+    if(Array.isArray(v)&&!v.length)return;
+    out[k]=v;
+  });
+  return out;
+}
+function submitReservationJSONP(data){return new Promise((resolve,reject)=>{const callbackName='scassoReserve_'+Date.now()+'_'+Math.random().toString(36).slice(2);const script=document.createElement('script');let finished=false;const timer=setTimeout(()=>{if(finished)return;finished=true;cleanup();reject(new Error('Tiempo de espera agotado al registrar la reserva.'))},70000);function cleanup(){clearTimeout(timer);try{delete window[callbackName]}catch(e){window[callbackName]=undefined}if(script.parentNode)script.parentNode.removeChild(script)}window[callbackName]=payload=>{if(finished)return;finished=true;cleanup();resolve(payload)};script.onerror=()=>{if(finished)return;finished=true;cleanup();reject(new Error('No se pudo completar el envío por la vía normal.'))};const payload=JSON.stringify(compactReservationData(data));const params=new URLSearchParams({action:'reserve',callback:callbackName,payload:payload,v:String(Date.now())});script.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();document.body.appendChild(script)})}
+function submitReservationDirectPost(data){
+  const form=document.createElement('form');
+  form.method='POST';
+  form.action=APPS_SCRIPT_ENDPOINT;
+  form.target='_self';
+  form.style.display='none';
+  function add(name,value){const input=document.createElement('input');input.type='hidden';input.name=name;input.value=value;form.appendChild(input)}
+  add('modo','confirmacion_web');
+  add('payload',JSON.stringify(compactReservationData(data)));
+  document.body.appendChild(form);
+  form.submit();
+}
+async function submitReservationRobust(data){
+  try{
+    const result=await submitReservationJSONP(data);
+    return result;
+  }catch(firstErr){
+    submitReservationDirectPost(data);
+    return new Promise(()=>{});
+  }
+}
 
 function isAdminTicketMode(){const q=new URLSearchParams(window.location.search);return !!((q.get('admin')||q.get('a'))&&((q.get('c')&&q.get('k'))||q.get('d')))}
 function decodeAdminTicketPayload(raw){
