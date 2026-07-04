@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v5.3: envío estable; cupos falsos por registros huérfanos corregidos -->
+<!-- v6.1: panel administrativo directo, tickets públicos sin enlaces internos y Gigantes actualizado -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -251,9 +251,15 @@ const HIELO_WORKSHOPS = {
   },
   hielo_gigantes: {
     label:'Gigantes del hielo: aventuras en el Pleistoceno', age:'3 a 6 años', capacity:25, multi:false,
-    intro:'Experiencia lúdica de 60 minutos que se repite en distintas fechas.',
-    dates:HIELO_DATES.map(f=>({fecha:f, titulo:'Gigantes del hielo: aventuras en el Pleistoceno', detalle:'15:00 a 16:00 · 60 minutos · Exploración de megafauna, Misión Mastodonte, piezas perdidas del Gliptodonte, glaciación, huevos congelados y proyección inmersiva.'})),
-    ficha:`<h2>Gigantes del hielo: aventuras en el Pleistoceno</h2><p><strong>Edad:</strong> 3 a 6 años · <strong>Cupo:</strong> 20 a 25 niños/as · <strong>Duración:</strong> 60 minutos.</p><p>Experiencia inmersiva y de juego para descubrir la megafauna: gliptodonte, mastodonte y tigre dientes de sable.</p><ul><li><strong>Misión Mastodonte:</strong> seguir huellas, observar pistas y resolver desafíos.</li><li><strong>Piezas perdidas del gigante:</strong> rompecabezas tridimensional del gliptodonte y su hábitat.</li><li><strong>Gigantes congelados:</strong> exploración, excavación y descubrimiento en un ambiente de glaciación.</li><li><strong>Cierre:</strong> puesta en común con proyección inmersiva.</li></ul>`
+    intro:'Cinco encuentros lúdicos para niñas y niños de 3 a 6 años. La información detallada está confirmada para el lunes; los demás días quedan pendientes de completar.',
+    dates:[
+      {fecha:'2026-07-27', titulo:'Gigantes del hielo · Lunes 27/07', detalle:'Viví una aventura entre los gigantes del pasado: Código Gigantes, Misión Mastodonte, Piezas Perdidas del Gigante, Gigantes Congelados del Pleistoceno y Ritmo Prehistórico.'},
+      {fecha:'2026-07-28', titulo:'Gigantes del hielo · Martes 28/07', detalle:'Información del taller pendiente de confirmar.'},
+      {fecha:'2026-07-29', titulo:'Gigantes del hielo · Miércoles 29/07', detalle:'Información del taller pendiente de confirmar.'},
+      {fecha:'2026-07-30', titulo:'Gigantes del hielo · Jueves 30/07', detalle:'Información del taller pendiente de confirmar.'},
+      {fecha:'2026-07-31', titulo:'Gigantes del hielo · Viernes 31/07', detalle:'Información del taller pendiente de confirmar.'}
+    ],
+    ficha:`<h2>Gigantes del hielo: aventuras en el Pleistoceno</h2><p><strong>Edad:</strong> 3 a 6 años · <strong>Cupo:</strong> 25 niños/as · <strong>Duración:</strong> 60 minutos.</p><p><strong>Lunes 27/07:</strong> una jornada de exploración, juego, desafíos y descubrimientos para convertirse en pequeños paleontólogos y conocer la megafauna regional.</p><ul><li><strong>Código Gigantes: Historias de la Megafauna:</strong> experiencia inmersiva con lupas y linternas para descubrir secretos de los gigantes del pasado.</li><li><strong>Misión Mastodonte:</strong> seguir huellas y embocar aros en los enormes colmillos.</li><li><strong>Tras las Piezas Perdidas del Gigante:</strong> búsqueda del tesoro y reconstrucción de un rompecabezas tridimensional de gliptodonte.</li><li><strong>Gigantes Congelados del Pleistoceno:</strong> explorar huevos congelados y descubrir al tigre dientes de sable.</li><li><strong>Ritmo Prehistórico:</strong> cierre con música, baile y diversión.</li></ul><p><strong>Martes 28/07 a viernes 31/07:</strong> información del taller pendiente de confirmar.</p>`
   }
 };
 let selectedProgram='escuelas', viewDate=new Date(programs.escuelas.startMonth), selectedDate=null, selectedSlot=null, selectedDates=[], currentSlots={}, mobileFocusedDate=null;
@@ -288,11 +294,11 @@ function initCards(){
   });
 }
 function setPeople(p,g,level){
-  const maxPeople = selectedProgram==='publico'?20:(selectedProgram==='escuelas'?120:(selectedProgram==='mundos'?200:50));
+  const maxPeople = selectedProgram==='publico'?20:(selectedProgram==='escuelas'?60:(selectedProgram==='mundos'?80:30));
   const peopleValue = Math.max(1, Math.min(maxPeople, Number(p||1)));
   if(els.people){ els.people.innerHTML = numberOptions(1, maxPeople, peopleValue); els.people.value = String(peopleValue); }
-  const guideValue = Math.max(0, Math.min(40, Number(g||0)));
-  if(els.guides){ els.guides.innerHTML = numberOptions(0, 40, guideValue); els.guides.value = String(guideValue); }
+  const guideValue = Math.max(0, Math.min(10, Number(g||0)));
+  if(els.guides){ els.guides.innerHTML = numberOptions(0, 10, guideValue); els.guides.value = String(guideValue); }
   if($('level'))$('level').value=level;
 }
 function selectProgram(key){
@@ -411,7 +417,7 @@ function renderSpecialOptions(){
   }
   if(selectedProgram==='mundos'){
     els.special.classList.remove('hidden');
-    els.special.innerHTML=`<h3>Elegí modalidad para Mundos Perdidos</h3><div class="choice-grid"><label class="date-choice"><input type="radio" name="mundosMode" value="Pase completo" ${mundosMode==='Pase completo'?'checked':''}><span><strong>Pase completo</strong><span class="meta">Incluye todos los días de las jornadas.</span></span></label><label class="date-choice"><input type="radio" name="mundosMode" value="Días particulares" ${mundosMode==='Días particulares'?'checked':''}><span><strong>Días particulares</strong><span class="meta">Elegí sólo las jornadas puntuales.</span></span></label></div><div class="two"><div><label for="mundosAdults">Adultos que pagan</label><select id="mundosAdults">${numberOptions(0,200,mundosAdults)}</select></div><div><label for="mundosMinors">Menores de 3 años sin cargo</label><select id="mundosMinors">${numberOptions(0,100,mundosMinors)}</select></div></div><div id="mundosDays" class="${mundosMode==='Días particulares'?'':'hidden'}"><h3>Días disponibles</h3><div class="choice-grid">${MUNDOS_DATES.map(d=>dateCheckboxHtml('mundosDay',d,mundosSelected.includes(d),mundosLabel(d),mundosMeta(d))).join('')}</div></div><div id="mundosDiscount" class="discount hidden"></div>`;
+    els.special.innerHTML=`<h3>Elegí modalidad para Mundos Perdidos</h3><div class="choice-grid"><label class="date-choice"><input type="radio" name="mundosMode" value="Pase completo" ${mundosMode==='Pase completo'?'checked':''}><span><strong>Pase completo</strong><span class="meta">Incluye todos los días de las jornadas.</span></span></label><label class="date-choice"><input type="radio" name="mundosMode" value="Días particulares" ${mundosMode==='Días particulares'?'checked':''}><span><strong>Días particulares</strong><span class="meta">Elegí sólo las jornadas puntuales.</span></span></label></div><div class="two"><div><label for="mundosAdults">Adultos que pagan</label><select id="mundosAdults">${numberOptions(0,80,mundosAdults)}</select></div><div><label for="mundosMinors">Menores de 3 años sin cargo</label><select id="mundosMinors">${numberOptions(0,20,mundosMinors)}</select></div></div><div id="mundosDays" class="${mundosMode==='Días particulares'?'':'hidden'}"><h3>Días disponibles</h3><div class="choice-grid">${MUNDOS_DATES.map(d=>dateCheckboxHtml('mundosDay',d,mundosSelected.includes(d),mundosLabel(d),mundosMeta(d))).join('')}</div></div><div id="mundosDiscount" class="discount hidden"></div>`;
     document.querySelectorAll('input[name="mundosMode"]').forEach(r=>r.onchange=e=>{mundosMode=e.target.value;mundosSelected=mundosMode==='Pase completo'?MUNDOS_DATES.filter(d=>!isPast(d)):[];selectedDates=[...mundosSelected];renderSpecialOptions();renderCalendar();updateSummary();});
     $('mundosAdults').oninput=$('mundosAdults').onchange=e=>{mundosAdults=Math.max(0,Number(e.target.value||0));els.people.value=mundosAdults;updateSummary();};
     $('mundosMinors').oninput=$('mundosMinors').onchange=e=>{mundosMinors=Math.max(0,Number(e.target.value||0));updateSummary();};
@@ -575,39 +581,20 @@ function adminPanelDocument(result){const t=result.ticket||{};const paid=!!resul
 async function handleAdminTicketMode(){
   const q=new URLSearchParams(window.location.search);
   const compactAction=q.get('a');
-  const adminAction=q.get('admin')||({m:'panel',t:'ticket',p:'pago',x:'cancelar'}[compactAction]||compactAction||'ticket');
-  const confirmPayment=adminAction==='pago'||adminAction==='p';
-  if(adminAction==='panel'||adminAction==='m'){
-    document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center">Abriendo panel administrativo...</div>';
-    try{
-      const result=await fetchAdminTicketJSONP(false,'ticket');
-      if(!result||!result.ok){document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center;color:#8b2d20"><h2>No se pudo abrir el panel</h2><p>'+((result&&result.message)?result.message:'Enlace inválido o vencido.')+'</p></div>';return}
-      document.open();document.write(adminPanelDocument(result));document.close();
-    }catch(err){document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center;color:#8b2d20"><h2>No se pudo abrir el panel</h2><p>'+((err&&err.message)?err.message:'Error de conexión.')+'</p></div>'}
+  const adminText=q.get('admin');
+  const map={m:'panel',t:'ticket',p:'confirmar_pago',x:'cancelar_reserva'};
+  const action=adminText || map[compactAction] || compactAction || 'ticket';
+  const c=q.get('c')||'';
+  const k=q.get('k')||'';
+  if(!c||!k){
+    document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center;color:#8b2d20"><h2>No se pudo abrir el panel</h2><p>Falta código o clave administrativa.</p></div>';
     return;
   }
-  if(adminAction==='cancelar'||adminAction==='x'){document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center">Cancelando reserva pendiente...</div>';try{const result=await fetchAdminTicketJSONP(false,'cancelar');document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center;color:'+(result&&result.ok?'#17472e':'#8b2d20')+'"><h2>'+((result&&result.ok)?'Reserva cancelada':'No se pudo cancelar')+'</h2><p>'+((result&&result.message)?result.message:'')+'</p></div>';}catch(err){document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center;color:#8b2d20"><h2>No se pudo cancelar</h2><p>'+((err&&err.message)?err.message:'Error de conexión.')+'</p></div>';}return;}
-  document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center">Abriendo ticket administrativo...</div>';
-  const encoded=q.get('d');
-  if(encoded){
-    try{
-      const ticket=decodeAdminTicketPayload(encoded);
-      if(confirmPayment) ticket.estado='ABONADO';
-      const html=ticketDocument(ticket,confirmPayment);
-      document.open();document.write(html);document.close();
-      if(q.get('c')&&q.get('k')) fetchAdminTicketJSONP(confirmPayment).catch(()=>{});
-      return;
-    }catch(err){
-      document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center;color:#8b2d20"><h2>No se pudo abrir el ticket</h2><p>El enlace del ticket está dañado o incompleto.</p></div>';
-      return;
-    }
-  }
-  try{
-    const result=await fetchAdminTicketJSONP(confirmPayment);
-    if(!result||!result.ok){document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center;color:#8b2d20"><h2>No se pudo abrir el ticket</h2><p>'+((result&&result.message)?result.message:'Enlace inválido o vencido.')+'</p></div>';return}
-    const ticket=result.ticket;const html=ticketDocument(ticket,!!result.paid);document.open();document.write(html);document.close();
-  }catch(err){document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center;color:#8b2d20"><h2>No se pudo abrir el ticket</h2><p>'+((err&&err.message)?err.message:'Error de conexión.')+'</p></div>'}
+  document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center">Abriendo Administración...</div>';
+  const target=APPS_SCRIPT_ENDPOINT+'?action='+encodeURIComponent(action)+'&c='+encodeURIComponent(c)+'&k='+encodeURIComponent(k)+'&v='+Date.now();
+  window.location.replace(target);
 }
+
 function validateBeforeSubmit(){const slots=currentSelectionSlots();if(!programs[selectedProgram].accepting)return 'Esta propuesta todavía no tiene fechas de reserva habilitadas.';if(selectedProgram==='hielo'){ensureHieloState();for(const k of hieloKeys()){const st=hieloState[k]||{},q=Number(st.participants||0),ds=st.dates||[];if(q>0&&!ds.length)return 'Elegí al menos una fecha para '+getHieloConfig(k).label+'.';if(q===0&&ds.length)return 'Indicá cantidad de participantes para '+getHieloConfig(k).label+' o limpiá ese taller.';}if(hieloTotalParticipants()<=0)return 'Indicá participantes en al menos uno de los talleres de Edad del Hielo.';}if(!slots.length)return 'Falta elegir al menos una fecha u horario disponible.';const emailValue=$('email').value.trim();if($('email').required&&!emailValue)return 'Falta el correo electrónico.';if(emailValue&&$('email2')&&$('email2').required&&emailValue!==$('email2').value.trim())return 'Los correos no coinciden. Escribilos manualmente para evitar errores.';if(selectedProgram==='mundos'&&Number(mundosAdults||0)<=0)return 'Indicá al menos un adulto que paga para Mundos Perdidos.';return ''}
 function resetForNewReservation(){['responsible','phone','email','email2','school','address','course','topics','accessibility'].forEach(id=>$(id).value='');$('accept').checked=false;selectedDate=null;selectedSlot=null;selectedDates=[];els.formMessage.className='notice hidden';els.formMessage.textContent='';els.ticketBox.classList.add('hidden');els.ticketBox.innerHTML='';els.newBtn.classList.add('hidden');lastTicketData=null;const db=$('downloadCurrentTicket'),pb=$('printCurrentTicket');if(db){db.disabled=true;db.classList.add('hidden')}if(pb){pb.disabled=true;pb.classList.add('hidden')}if(selectedProgram==='hielo'){hieloSelected=[];hieloState={hielo_exploradores:{participants:0,dates:[]},hielo_gigantes:{participants:0,dates:[]}};}if(selectedProgram==='mundos'&&mundosMode==='Días particulares')mundosSelected=[];renderSpecialOptions();renderCalendar();updateSummary();$('propuesta').scrollIntoView({behavior:'smooth'})}
 function openWorkshopModal(html){const m=$('workshopModal'),c=$('workshopModalContent');if(!m||!c)return;c.innerHTML=html;m.classList.add('show');m.setAttribute('aria-hidden','false')}
