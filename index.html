@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v6.9: cupos reales desde calendarios, enlaces administrativos institucionales, planilla fija, spinner y talleres plegables -->
+<!-- v7.0: cupos visibles, disponibilidad tolerante, administración con datos embebidos y sin carteles rojos técnicos -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -499,9 +499,13 @@ function localSlotsForMonth(){
   for(let day=1;day<=days;day++){
     const d=new Date(year,month,day,12),key=ymd(d),dow=d.getDay();
     if(selectedProgram==='escuelas'&&dow>=1&&dow<=4){['08:30','09:30','10:30','13:30','14:30','15:30'].forEach(t=>add(key,t,null));}
-    else if(selectedProgram==='publico'&&year===2026&&month>=9&&dow===5){['15:00','16:00','17:00'].forEach(t=>add(key,t,null));}
-    else if(selectedProgram==='hielo'&&HIELO_DATES.includes(key)){add(key,'15:00',null);}
-    else if(selectedProgram==='mundos'&&MUNDOS_DATES.includes(key)){add(key,'Pase',null);}
+    else if(selectedProgram==='publico'&&year===2026&&month>=9&&dow===5){['15:00','16:00','17:00'].forEach(t=>add(key,t,programs.publico.capacity));}
+    else if(selectedProgram==='hielo'&&HIELO_DATES.includes(key)){
+      const active=hieloBackendProgram();
+      const cap=active==='hielo_gigantes'?HIELO_WORKSHOPS.hielo_gigantes.capacity:HIELO_WORKSHOPS.hielo_exploradores.capacity;
+      add(key,'15:00',cap);
+    }
+    else if(selectedProgram==='mundos'&&MUNDOS_DATES.includes(key)){add(key,'Pase',programs.mundos.capacity);}
   }
   return slots;
 }
@@ -643,6 +647,9 @@ async function submitReservationRobust(data){
 function adminCurrentQuery(){return new URLSearchParams(window.location.search)}
 function adminCode(){const q=adminCurrentQuery();return q.get('c')||q.get('code')||q.get('codigo')||q.get('reserva')||''}
 function adminToken(){const q=adminCurrentQuery();return q.get('k')||q.get('token')||q.get('key')||q.get('clave')||''}
+function adminEmbeddedRaw(){const q=adminCurrentQuery();return q.get('d')||q.get('data')||''}
+function adminEmbeddedTicket(){const raw=adminEmbeddedRaw();if(!raw)return null;try{return decodeAdminTicketPayload(raw)}catch(e){return null}}
+function withAdminEmbedded(params){const raw=adminEmbeddedRaw();if(raw)params.set('d',raw);return params}
 function isAdminTicketMode(){const q=adminCurrentQuery();return !!(((q.get('admin')||q.get('a')||q.get('r')||q.get('action')||q.get('modo'))&&(adminCode()&&adminToken())) || (adminCode()&&adminToken()) || q.get('d'))}
 function decodeAdminTicketPayload(raw){
   const normalized=String(raw||'').replace(/-/g,'+').replace(/_/g,'/');
@@ -652,7 +659,12 @@ function decodeAdminTicketPayload(raw){
   return JSON.parse(json);
 }
 function fetchAdminTicketJSONP(confirmPayment,adminAction){return new Promise((resolve,reject)=>{const q=new URLSearchParams(window.location.search);const callbackName='scassoAdminTicket_'+Date.now()+'_'+Math.random().toString(36).slice(2);const script=document.createElement('script');let finished=false;const timer=setTimeout(()=>{if(finished)return;finished=true;cleanup();reject(new Error('Tiempo de espera agotado al abrir el ticket.'))},60000);function cleanup(){clearTimeout(timer);try{delete window[callbackName]}catch(e){window[callbackName]=undefined}if(script.parentNode)script.parentNode.removeChild(script)}window[callbackName]=payload=>{if(finished)return;finished=true;cleanup();resolve(payload)};script.onerror=()=>{if(finished)return;finished=true;cleanup();reject(new Error('No se pudo conectar con el sistema de tickets.'))};let action=confirmPayment?'confirmar_pago_data':'ticket_data';if(adminAction==='cancelar')action='cancelar_reserva_data';const code=adminCode(),token=adminToken();const params=new URLSearchParams({action:action,callback:callbackName,c:code,k:token,code:code,token:token,v:String(Date.now())});script.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();document.body.appendChild(script)})}
-function adminUrl(shortAction){const code=adminCode(),token=adminToken();const long=shortAction==='m'?'panel':shortAction==='p'?'pago':shortAction==='x'?'cancelar':'ticket';const params=new URLSearchParams({admin:long,a:shortAction,c:code,k:token,code:code,token:token,v:'69'});return window.location.origin+window.location.pathname+'?'+params.toString()}
+function adminUrl(shortAction){
+  const code=adminCode(),token=adminToken();
+  const long=shortAction==='m'?'panel':shortAction==='p'?'pago':shortAction==='x'?'cancelar':'ticket';
+  const params=withAdminEmbedded(new URLSearchParams({admin:long,a:shortAction,c:code,k:token,code:code,token:token,v:'70'}));
+  return window.location.origin+window.location.pathname+'?'+params.toString()
+}
 function adminPanelDocument(result){const t=result.ticket||{};const paid=!!result.paid||String(t.estado||'').toUpperCase().includes('ABONADO');const sheet=result.sheetUrl||'';const special=[t.temas?'<li><strong>Tema especial:</strong> '+escapeHtml(t.temas)+'</li>':'',t.accesibilidad?'<li><strong>Accesibilidad / consulta:</strong> '+escapeHtml(t.accesibilidad)+'</li>':'',t.comentarios?'<li><strong>Comentarios:</strong> '+escapeHtml(t.comentarios)+'</li>':''].join('')||'<li>Sin comentarios adicionales registrados.</li>';return `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Panel ${escapeHtml(t.codigo_reserva||'')}</title><body style="margin:0;background:#efe6d7;font-family:Arial,sans-serif;color:#2d2118;padding:16px"><main style="max-width:760px;margin:0 auto;background:#fffdf8;border:1px solid #d8cab4;border-radius:22px;box-shadow:0 18px 50px rgba(60,42,24,.16);overflow:hidden"><header style="padding:18px 20px;background:linear-gradient(135deg,#155e62,#0e646a);color:white"><div style="text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:900">Museo Scasso · Administración</div><h1 style="margin:.35em 0 0;font-family:Georgia,serif;font-size:28px">Panel de reserva</h1></header><section style="padding:18px 20px"><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"><span style="background:${paid?'#e4f4ea':'#fff3d5'};color:${paid?'#1f7a4f':'#6a4310'};border:1px solid ${paid?'#9fd1b1':'#e2bf78'};border-radius:999px;padding:8px 12px;font-weight:900">${paid?'ABONADO':'PENDIENTE DE PAGO'}</span><span style="background:#efe4d0;border-radius:999px;padding:8px 12px;font-family:monospace;font-weight:900">${escapeHtml(t.codigo_reserva||'')}</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div style="border:1px solid #e2d6c6;border-radius:16px;padding:13px"><h2 style="margin:0 0 8px;font-size:17px;color:#155e62">Actividad</h2><p><strong>${escapeHtml(t.programa||'')}</strong></p><p>${escapeHtml(t.modalidad||'')}</p><p><strong>Registro:</strong> ${escapeHtml(ticketRegisteredText(t))}</p><p>${(t.fechas||[]).map(s=>escapeHtml((s.fecha||'')+' '+(s.horario||''))).join('<br>')}</p></div><div style="border:1px solid #e2d6c6;border-radius:16px;padding:13px"><h2 style="margin:0 0 8px;font-size:17px;color:#155e62">Solicitante</h2><p><strong>${escapeHtml(t.responsable||'')}</strong></p><p>${escapeHtml(t.institucion||'')}</p><p>${escapeHtml(t.telefono||'')}</p>${t.email?'<p>'+escapeHtml(t.email)+'</p>':''}</div></div><div style="border:1px solid #e2d6c6;border-radius:16px;padding:13px;margin-top:12px"><h2 style="margin:0 0 8px;font-size:17px;color:#155e62">Participantes e importe</h2><p><strong>Participantes:</strong> ${escapeHtml(String(t.participantes||''))}</p><p><strong>Importe:</strong> ${escapeHtml(String(t.precio_estimado||t.amount||'A confirmar'))}</p></div><div style="border:1px solid #e2d6c6;border-radius:16px;padding:13px;margin-top:12px;background:#fffaf0"><h2 style="margin:0 0 8px;font-size:17px;color:#155e62">Pedido especial / información para guías</h2><ul style="margin:0;padding-left:20px;line-height:1.5">${special}</ul></div><div style="display:grid;gap:10px;margin-top:16px"><a href="${adminUrl('t')}" style="display:block;text-align:center;text-decoration:none;border-radius:999px;padding:13px 16px;background:#f4ead9;color:#7a4b28;font-weight:900;border:1px solid #d8cab4">Abrir ticket provisorio</a><a href="${adminUrl('p')}" style="display:block;text-align:center;text-decoration:none;border-radius:999px;padding:13px 16px;background:#1f7a4f;color:white;font-weight:900;border:1px solid #1f7a4f">Confirmar pago y abrir ticket ABONADO</a><a href="${adminUrl('x')}" style="display:block;text-align:center;text-decoration:none;border-radius:999px;padding:13px 16px;background:#fff0ed;color:#8b2d20;font-weight:900;border:1px solid #e0b4aa">Cancelar reserva pendiente</a>${sheet?'<a href="'+sheet+'" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;border-radius:999px;padding:13px 16px;background:#155e62;color:white;font-weight:900;border:1px solid #155e62">Abrir planilla de registro</a>':''}</div><p style="margin-top:14px;background:#fff3d5;border-left:5px solid #b97822;padding:12px;border-radius:10px;color:#5a3d12">Para cambiar de PENDIENTE DE PAGO a ABONADO hay que tocar el botón verde. No se modifica solo.</p></section></main></body></html>`}
 function adminDirectUrl(action){
   const map={panel:'m',ticket:'t',confirmar_pago:'p',cancelar_reserva:'x'};
@@ -661,7 +673,7 @@ function adminDirectUrl(action){
 function adminInstitutionalUrl(shortAction){
   const code=adminCode(),token=adminToken();
   const long=shortAction==='m'?'panel':shortAction==='p'?'pago':shortAction==='x'?'cancelar':'ticket';
-  const params=new URLSearchParams({admin:long,a:shortAction,c:code,k:token,code:code,token:token,v:'69'});
+  const params=withAdminEmbedded(new URLSearchParams({admin:long,a:shortAction,c:code,k:token,code:code,token:token,v:'70'}));
   return location.origin+location.pathname+'?'+params.toString();
 }
 function adminFallbackDocument(action,msg){
@@ -671,7 +683,7 @@ function adminFallbackDocument(action,msg){
   const paid=adminDirectUrl('confirmar_pago');
   const cancel=adminDirectUrl('cancelar_reserva');
   const title=action==='confirmar_pago'?'Confirmar pago y abrir ticket ABONADO':action==='ticket'?'Ticket provisorio':action==='cancelar_reserva'?'Cancelar reserva':'Panel administrativo';
-  document.body.innerHTML=`<div class="admin-shell"><main class="admin-shell-main"><header class="admin-shell-head"><small>Museo Scasso · Administración · v6.9</small><h1>${escapeHtml(title)}</h1></header><section class="admin-shell-body"><div class="admin-note"><strong>Reserva:</strong> ${escapeHtml(code)}.${msg?'<br><strong>Aviso:</strong> '+escapeHtml(msg):''}</div><div class="admin-note"><strong>Acceso administrativo:</strong> usá estos botones para reintentar dentro del dominio institucional. No se usan enlaces visibles a script.google.com.</div><div class="admin-shell-actions"><a class="blue" href="${panel}" target="_self">Abrir panel</a><a href="${ticket}" target="_self">Ticket provisorio</a><a class="green" href="${paid}" target="_self">Confirmar pago / ABONADO</a><a href="${cancel}" target="_self">Cancelar</a></div><div class="admin-note">Si esta pantalla no carga los datos, falta implementar la última versión de Apps Script como <strong>App web</strong>, ejecutada como museoscasso.videos@gmail.com y con acceso para <strong>Cualquiera</strong>.</div></section></main></div>`;
+  document.body.innerHTML=`<div class="admin-shell"><main class="admin-shell-main"><header class="admin-shell-head"><small>Museo Scasso · Administración · v7.0</small><h1>${escapeHtml(title)}</h1></header><section class="admin-shell-body"><div class="admin-note"><strong>Reserva:</strong> ${escapeHtml(code)}.${msg?'<br><strong>Aviso:</strong> '+escapeHtml(msg):''}</div><div class="admin-note"><strong>Acceso administrativo:</strong> usá estos botones para reintentar dentro del dominio institucional. No se usan enlaces visibles a script.google.com.</div><div class="admin-shell-actions"><a class="blue" href="${panel}" target="_self">Abrir panel</a><a href="${ticket}" target="_self">Ticket provisorio</a><a class="green" href="${paid}" target="_self">Confirmar pago / ABONADO</a><a href="${cancel}" target="_self">Cancelar</a></div><div class="admin-note">Si esta pantalla no carga los datos, falta implementar la última versión de Apps Script como <strong>App web</strong>, ejecutada como museoscasso.videos@gmail.com y con acceso para <strong>Cualquiera</strong>.</div></section></main></div>`;
 }
 function renderAdminTicketDocumentFromResult(result,paid){
   if(!result||!result.ok||!result.ticket){adminFallbackDocument(paid?'confirmar_pago':'ticket',(result&&result.message)||'No se recibieron datos del ticket.');return;}
@@ -689,11 +701,26 @@ async function handleAdminTicketMode(){
     document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;text-align:center;color:#8b2d20"><h2>No se pudo abrir Administración</h2><p>Falta código o clave administrativa.</p></div>';
     return;
   }
+  const embedded=adminEmbeddedTicket();
+  if(embedded && action!=='cancelar_reserva'){
+    if(action==='confirmar_pago'){
+      embedded.estado='ABONADO';
+      try{ fetchAdminTicketJSONP(true).catch(()=>{}); }catch(e){}
+      document.open();document.write(ticketDocument(embedded,true));document.close();
+      return;
+    }
+    if(action==='ticket'){
+      document.open();document.write(ticketDocument(embedded,false));document.close();
+      return;
+    }
+    document.open();document.write(adminPanelDocument({ok:true,ticket:embedded,sheetUrl:embedded.sheetUrl||''}));document.close();
+    return;
+  }
   adminFallbackDocument(action,'Cargando datos administrativos… si no carga automáticamente, usá los botones directos.');
   try{
     if(action==='cancelar_reserva'){
       const result=await fetchAdminTicketJSONP(false,'cancelar');
-      document.body.innerHTML=`<div class="admin-shell"><main class="admin-shell-main"><header class="admin-shell-head"><small>Museo Scasso · Administración · v6.9</small><h1>${result&&result.ok?'Reserva cancelada':'No se pudo cancelar'}</h1></header><section class="admin-shell-body"><div class="admin-note">${escapeHtml((result&&result.message)||'Sin respuesta del servidor.')}</div><div class="admin-shell-actions"><a class="blue" href="${adminInstitutionalUrl('m')}">Volver al panel</a></div></section></main></div>`;
+      document.body.innerHTML=`<div class="admin-shell"><main class="admin-shell-main"><header class="admin-shell-head"><small>Museo Scasso · Administración · v7.0</small><h1>${result&&result.ok?'Reserva cancelada':'No se pudo cancelar'}</h1></header><section class="admin-shell-body"><div class="admin-note">${escapeHtml((result&&result.message)||'Sin respuesta del servidor.')}</div><div class="admin-shell-actions"><a class="blue" href="${adminInstitutionalUrl('m')}">Volver al panel</a></div></section></main></div>`;
       return;
     }
     if(action==='confirmar_pago'){
@@ -739,7 +766,7 @@ function setSubmitSent(){
 }
 
 els.newBtn.onclick=resetForNewReservation;
-els.form.addEventListener('submit',async ev=>{ev.preventDefault();els.formMessage.className='notice danger';const err=validateBeforeSubmit();if(err){els.formMessage.textContent=err;return}const data=collectData(makeReservationCode());try{setSubmitWaiting();const result=await submitReservationRobust(data);if(!result||!result.ok){setSubmitReady();els.formMessage.className='notice danger';els.formMessage.textContent=(result&&result.message)?result.message:'No se pudo registrar la reserva.';return}data.codigo_reserva=result.code||data.codigo_reserva;if(result.ticket){data.timestamp=result.ticket.timestamp||result.ticket.createdAt||result.ticket.fecha_solicitud||data.timestamp;data.estado=result.ticket.estado||result.status||data.estado;}else{data.estado=result.status||data.estado;}els.formMessage.className='notice success';els.formMessage.innerHTML='<strong>Solicitud enviada y registrada.</strong> Código: <strong>'+data.codigo_reserva+'</strong>. Revisá tu mail: enviamos la pre-reserva y las instrucciones de pago. La confirmación final queda pendiente de Administración.<div class="submit-after-note">Solicitud enviada. Para cargar otro grupo o actividad, tocá <strong>Nueva reserva</strong>.</div>';setSubmitSent();renderTicket(data);els.newBtn.classList.remove('hidden');loadAvailability()}catch(err){setSubmitReady();els.formMessage.className='notice danger';els.formMessage.textContent=(err&&err.message)?err.message:'No se pudo enviar la solicitud. Probá nuevamente o comunicate con el museo.';}});
+els.form.addEventListener('submit',async ev=>{ev.preventDefault();els.formMessage.className='notice danger';const err=validateBeforeSubmit();if(err){els.formMessage.textContent=err;return}const data=collectData(makeReservationCode());try{setSubmitWaiting();const result=await submitReservationRobust(data);if(!result||!result.ok){setSubmitReady();els.formMessage.className='notice danger';els.formMessage.textContent=(result&&result.message)?result.message:'No se pudo registrar la reserva.';return}data.codigo_reserva=result.code||data.codigo_reserva;if(result.ticket){data.timestamp=result.ticket.timestamp||result.ticket.createdAt||result.ticket.fecha_solicitud||data.timestamp;data.estado=result.ticket.estado||result.status||data.estado;}else{data.estado=result.status||data.estado;}els.formMessage.className='notice success';els.formMessage.innerHTML='<strong>Solicitud enviada y registrada.</strong> Código: <strong>'+data.codigo_reserva+'</strong>. Revisá tu mail: enviamos la pre-reserva y las instrucciones de pago. La confirmación final queda pendiente de Administración.<div class="submit-after-note">Solicitud enviada. Para cargar otro grupo o actividad, tocá <strong>Nueva reserva</strong>.</div>';setSubmitSent();renderTicket(data);els.newBtn.classList.remove('hidden');loadAvailability()}catch(err){setSubmitReady();els.formMessage.className='notice';els.formMessage.innerHTML='<strong>No se confirmó el envío automáticamente.</strong><br>Revisá la conexión y probá nuevamente. Si vuelve a ocurrir, no repitas muchas veces: consultá a Administración para evitar registros duplicados.';}});
 if(isAdminTicketMode()){handleAdminTicketMode();}else{initCards();renderProgramInfo();loadAvailability();updateSummary();}
 window.selectProgram=selectProgram;window.handleSlotClick=handleSlotClick;window.closeWorkshopModal=closeWorkshopModal;
 </script>
