@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v7.6: cupos por calendario de Administración, enlaces admin cortos y talleres resumidos -->
+<!-- v7.9: cupos por iframe confirmado, sin tocar envío ni ticket usuario -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -510,32 +510,66 @@ function updateTodayButton(){
   const b=$('todayBtn');if(!b)return;
   b.classList.toggle('todayBtnActive',ym(viewDate)===ym(today));
 }
-function loadAvailability(){
-  currentSlots=localSlotsForMonth();
+function fetchAvailabilityViaIframe(program,month){
+  return new Promise((resolve,reject)=>{
+    const callbackId='availability_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const iframe=document.createElement('iframe');
+    let done=false;
+    iframe.style.display='none';
+    iframe.name=callbackId;
+    const cleanup=()=>{window.removeEventListener('message',handler);if(iframe.parentNode)iframe.parentNode.removeChild(iframe)};
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer cupos'))},20000);
+    function handler(ev){
+      const data=ev.data||{};
+      if(!data||data.callbackId!==callbackId)return;
+      if(done)return;
+      done=true;clearTimeout(timer);cleanup();resolve(data.result||data.payload||data);
+    }
+    window.addEventListener('message',handler);
+    const params=new URLSearchParams({action:'availability',program:program,month:month,iframe:'1',callbackId:callbackId,v:String(Date.now())});
+    iframe.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();
+    document.body.appendChild(iframe);
+  });
+}
+function fetchAvailabilityViaJsonp(program,month){
+  return new Promise((resolve,reject)=>{
+    const old=$('scassoAvailabilityScript'); if(old)old.remove();
+    const cb='scassoAvailabilityCallback_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    let done=false;
+    const script=document.createElement('script');
+    script.id='scassoAvailabilityScript';
+    script.async=true;
+    const cleanup=()=>{try{delete window[cb]}catch(e){window[cb]=undefined} if(script.parentNode)script.parentNode.removeChild(script)};
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer cupos'))},16000);
+    window[cb]=payload=>{if(done)return;done=true;clearTimeout(timer);cleanup();resolve(payload)};
+    script.onerror=()=>{if(done)return;done=true;clearTimeout(timer);cleanup();reject(new Error('No se pudo leer cupos por JSONP'))};
+    const params=new URLSearchParams({action:'availability',program:program,month:month,callback:cb,v:String(Date.now())});
+    script.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();
+    document.body.appendChild(script);
+  });
+}
+async function loadAvailability(){
+  const local=localSlotsForMonth();
+  currentSlots=local;
   updateTodayButton();
   renderCalendar();
   const p=programs[selectedProgram];
   if(!p.accepting){showAvailabilityMessage('<strong>Próximamente.</strong> Esta experiencia todavía no tiene fechas habilitadas.');return;}
   if(selectedProgram==='mundos'){showAvailabilityMessage('');return;}
-  // No mostrar carteles técnicos al público. Si el backend no responde, quedan los turnos locales sin número de cupos.
   showAvailabilityMessage('');
-  const old=$('scassoAvailabilityScript'); if(old)old.remove();
-  const cb='scassoAvailabilityCallback_'+Date.now()+'_'+Math.random().toString(36).slice(2); let finished=false; const script=document.createElement('script'); script.id='scassoAvailabilityScript'; script.async=true;
-  const cleanup=()=>{try{delete window[cb]}catch(e){window[cb]=undefined} if(script.parentNode)script.parentNode.removeChild(script)};
-  const finishSilently=()=>{if(finished)return;finished=true;cleanup();showAvailabilityMessage('');renderCalendar();};
-  const timer=setTimeout(finishSilently,18000);
-  window[cb]=payload=>{
-    if(finished)return;finished=true;clearTimeout(timer);
-    if(payload&&payload.ok&&payload.slots&&Object.keys(payload.slots).length){
-      currentSlots=payload.slots;
-    }
-    showAvailabilityMessage('');
-    renderCalendar();
-    cleanup();
-  };
-  script.onerror=()=>{clearTimeout(timer);finishSilently();};
-  const params=new URLSearchParams({action:'availability',program:backendProgram(),month:ym(viewDate),callback:cb,v:String(Date.now())});
-  script.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString(); document.body.appendChild(script);
+  const program=backendProgram();
+  const month=ym(viewDate);
+  let payload=null;
+  try{payload=await fetchAvailabilityViaIframe(program,month);}catch(e){
+    try{payload=await fetchAvailabilityViaJsonp(program,month);}catch(err){payload=null;}
+  }
+  if(payload&&payload.ok&&payload.slots&&Object.keys(payload.slots).length){
+    currentSlots=payload.slots;
+  }else{
+    currentSlots=local;
+  }
+  showAvailabilityMessage('');
+  renderCalendar();
 }
 function selectedPlacesForSlot(date,time){const slots=currentSelectionSlots();if(selectedProgram==='hielo')return slots.filter(s=>s.fecha===date&&s.horario===time).reduce((sum,s)=>sum+Number(s.participantes||0),0);if(selectedProgram==='mundos')return Number(mundosAdults||0)+Number(mundosMinors||0);return Number(els.people.value||0)}
 function visibleCapacityForSlot(date,time,remaining){
