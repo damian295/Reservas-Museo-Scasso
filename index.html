@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.8 FINAL INDEX PUBLICO ESTABLE: conserva la lectura de cupos que funcionó,
+<!-- v12.10 AJUSTES FINOS SOBRE CANONICO: conserva la lectura de cupos que funcionó,
      agrega indicador de carga público, recupera lectura por JSONP + iframe + respaldo,
      oculta mensajes técnicos y NO toca Apps Script / planilla / calendarios. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
@@ -269,6 +269,12 @@ body[data-program="escuelas"] .day{min-height:62px!important;padding:4px!importa
 .hielo-workshop-block .choice-grid{align-items:stretch}.date-choice.hielo-opening{grid-column:span 2;background:#fff7df;border-color:#e0bd73;box-shadow:0 0 0 2px rgba(226,191,120,.18) inset}.date-choice .enc-title .act-icon{display:inline-flex;width:1.45em;justify-content:center;margin-right:3px}.ficha-btn:before{content:'📄 ';}
 @media(max-width:720px){.date-choice.hielo-opening{grid-column:span 1}.program.featured .program-visual{height:135px!important}.program-visual{height:118px!important}.slot{min-height:30px!important}.day{min-height:62px!important}}
 
+
+/* v12.10 ajustes finos Edad del Hielo */
+.act-icon{display:inline-grid;place-items:center;width:19px;height:19px;margin-right:7px;border-radius:6px;background:#155e62;color:#fff;font-size:.72rem;font-weight:900;vertical-align:middle;line-height:1}
+.discount-inline{display:inline-block;margin-top:6px;background:#eaf8ef;border-left:4px solid #1f7a4f;color:#17472e;border-radius:10px;padding:8px 10px;font-weight:850}
+.hielo-workshop-head h4{margin-bottom:4px}.hielo-workshop-intro{margin:.25rem 0 .35rem}.workshop-activity-details summary{font-weight:900;color:#3a2416}.date-choice.hielo-opening{grid-column:1 / -1;background:#fff8df;border-color:#e2bf78}.date-choice .meta-date{font-size:.9rem;color:#7a4b28}.ficha-btn{white-space:nowrap}
+
 </style>
 </head>
 <body data-program="escuelas">
@@ -322,34 +328,36 @@ const MUNDOS_DATES = ['2026-09-26','2026-09-27','2026-09-28','2026-09-29','2026-
 const programs = {
   escuelas:{title:'Visitas escolares',tag:'Docentes',visual:'escuelas',featured:true,intro:'Visitas para grupos escolares, con reserva previa y propuestas adaptadas al nivel educativo.',bullets:['Lunes a jueves','Turnos de una hora','Hasta 30 alumnos por grupo'],note:'Actividad principal del museo',startMonth:new Date(2026,6,1),capacity:30,priceMode:'por_alumno',accepting:true,groupOptions:[['publica','Escuela pública / institución pública'],['privada','Escuela privada / institución privada'],['otro','Otro grupo educativo']],prices:{publica:2200,privada:3600,otro:3600},modalities:[{name:'Libre',multiplier:1},{name:'Guiada con métodos tradicionales',multiplier:1},{name:'Guiada con tema específico',multiplier:1}]},
   publico:{title:'Público general',tag:'Desde octubre',visual:'publico',intro:'Turnos para visitantes individuales, familias y turismo, con inscripción previa los días viernes.',bullets:['Previsto para octubre de 2026','Día viernes','Cupo: 20 personas por turno'],note:'Apertura con turno previo',startMonth:new Date(2026,9,1),capacity:20,priceMode:'por_persona',accepting:true,groupOptions:[['general','Público general / familia'],['menor','Menor'],['otro','Otro grupo']],prices:{general:3600,menor:2200,otro:3600},modalities:[{name:'Recorrido general sin guía',multiplier:1},{name:'Recorrido familiar con guía',multiplier:1.35},{name:'Recorrido especial temático',multiplier:1.75}]},
-  hielo:{title:'Talleres de la Edad del Hielo',tag:'27 al 31 de julio',visual:'hielo',intro:'Dos talleres simultáneos de vacaciones de invierno, diferenciados por edad y por actividades de cada día.',bullets:['27 al 31/07/2026','15:00 a 16:00','Selección por días o combo completo con descuento'],note:'Taller especial para infancias',startMonth:new Date(2026,6,1),capacity:20,priceMode:'hielo_multi',accepting:true,groupOptions:[['general','Participante individual']],prices:{individual:6000,combo:24000},modalities:[{name:'Seleccionar taller y fechas',multiplier:1}]},
+  hielo:{title:'Talleres de la Edad del Hielo',tag:'27 al 31 de julio',visual:'hielo',intro:'Dos propuestas por edad durante la misma semana. Podés elegir días sueltos o semana completa con descuento.',bullets:['3 a 6 años y 7 a 12 años','15:00 a 16:00','Combo semanal con descuento'],note:'Taller especial para infancias',startMonth:new Date(2026,6,1),capacity:20,priceMode:'hielo_multi',accepting:true,groupOptions:[['general','Participante individual']],prices:{individual:6000,combo:24000},modalities:[{name:'Seleccionar taller y fechas',multiplier:1}]},
   mundos:{title:'Jornadas Mundos Perdidos',tag:'26 sep – 4 oct',visual:'mundos',intro:'Jornadas de divulgación científica dedicadas al río Paraná, con actividades intensivas de fin de semana y propuestas durante la semana.',bullets:['26/09 al 04/10/2026','Pase completo con descuento','Días particulares a elección','Menores de 3 años sin cargo'],note:'Evento especial anual',startMonth:new Date(2026,8,1),capacity:250,priceMode:'mundos_multi',accepting:true,groupOptions:[['general','Público general']],prices:{dia:4500,pase:18000},modalities:[{name:'Pase completo',fixedPrice:18000},{name:'Días particulares',multiplier:1}]},
   explorando:{title:'Explorando por el tiempo',tag:'Próximamente',visual:'explorando',intro:'Experiencia de realidad inmersiva con proyecciones y audio. Simula una máquina del tiempo.',bullets:['Capacidad: 20 personas','Proyecciones y audio','Programas temporales a definir'],note:'Fechas a anunciar',startMonth:new Date(2026,9,1),capacity:20,priceMode:'a_confirmar',accepting:false,groupOptions:[['general','Público general / escuela / grupo']],prices:{general:0},modalities:[{name:'Programa pasado'},{name:'Programa presente'},{name:'Programa futuro'}]}
 };
 const HIELO_WORKSHOPS = {
   hielo_gigantes: {
     label:'Gigantes del hielo. Aventuras en el Pleistoceno', age:'3 a 6 años', capacity:25, multi:true,
-    intro:'Cinco encuentros lúdicos para niñas y niños de 3 a 6 años, con propuestas diferenciadas por día.',
+    talleristas:'Alejandra Cepeda y Silvia Sunino',
+    intro:'Experiencia lúdica de 60 minutos, con desafíos sensoriales, movimiento, pistas y exploración de la megafauna.',
     dates:[
-      {fecha:'2026-07-27', titulo:'Gigantes del hielo · Lunes 27/07', detalle:'Juego inmersivo con misiones breves entre gigantes del pasado: código fósil, gliptodonte, huevo congelado y exploración del Pleistoceno.'},
-      {fecha:'2026-07-28', titulo:'Aventura en el Pleistoceno: ¡Desafíos entre Gigantes! 🐾❄️', detalle:'Misión de escape y exploración entre mastodontes, gliptodontes y dientes de sable. Resuelven pistas, obtienen llaves y abren el cofre final.'},
-      {fecha:'2026-07-29', titulo:'🦴🔎 Aventura Paleontológica en el Pleistoceno', detalle:'Excavación, laboratorio y búsqueda de fósiles para descubrir la megafauna. Registran hallazgos y crean moldes o fósiles para llevar.'},
-      {fecha:'2026-07-30', titulo:'🦣 Aventura entre Gigantes | Megafauna Arroyeña 🌿', detalle:'Circuito de desafíos sobre megafauna arroyeña: estómago gigante, cajas sensoriales, escape, laguna del Pleistoceno y huellas del tiempo.'},
-      {fecha:'2026-07-31', titulo:'Gigantes del hielo · Viernes 31/07', detalle:'Actividad de cierre pendiente de confirmar por el equipo del taller.'}
+      {fecha:'2026-07-27', titulo:'Lunes 27/07 · Gigantes del hielo', icon:'◆', detalle:'Apertura del taller, presentación inicial y recorrido por el museo. Se introduce la Edad del Hielo, la megafauna local y el juego de exploración de la semana.'},
+      {fecha:'2026-07-28', titulo:'Martes 28/07 · Desafíos entre gigantes', icon:'◆', detalle:'Misión de escape y exploración entre mastodontes, gliptodontes y dientes de sable. Código fósil, huellas, puente de piedras, túneles y cofre final del Pleistoceno.'},
+      {fecha:'2026-07-29', titulo:'Miércoles 29/07 · Aventura paleontológica', icon:'◆', detalle:'Excavación en cajones de arena, laboratorio de fósiles, clasificación de hallazgos, armado de esqueletos y creación de moldes o fósiles para llevar.'},
+      {fecha:'2026-07-30', titulo:'Jueves 30/07 · Megafauna arroyeña', icon:'◆', detalle:'Circuito de desafíos sobre megafauna regional: alimentación, cajas sensoriales, refugios, laguna del Pleistoceno, huellas del tiempo y juego corporal.'},
+      {fecha:'2026-07-31', titulo:'Viernes 31/07 · Cierre de aventura', icon:'◆', detalle:'Cierre integrador de la semana: recuperación de pistas, puesta en común, juego final y síntesis de los gigantes del hielo explorados durante el recorrido.'}
     ],
-    ficha:`<h2>Gigantes del hielo. Aventuras en el Pleistoceno</h2><p><strong>Edad:</strong> 3 a 6 años · <strong>Cupo:</strong> 25 niños/as · <strong>Horario:</strong> 15:00 a 16:00 · <strong>Duración:</strong> 60 minutos.</p><p>Semana de aventuras lúdicas e inmersivas para explorar la megafauna del Pleistoceno con misiones, pistas, desafíos sensoriales y circuitos de movimiento.</p><ul><li><strong>Lunes 27/07:</strong> Gigantes del hielo.</li><li><strong>Martes 28/07:</strong> Aventura en el Pleistoceno: ¡Desafíos entre Gigantes! 🐾❄️</li><li><strong>Miércoles 29/07:</strong> 🦴🔎 Aventura Paleontológica en el Pleistoceno.</li><li><strong>Jueves 30/07:</strong> 🦣 Aventura entre Gigantes | Megafauna Arroyeña 🌿.</li><li><strong>Viernes 31/07:</strong> actividad pendiente de confirmar.</li></ul>`
+    ficha:`<h2>Gigantes del hielo. Aventuras en el Pleistoceno</h2><p><strong>Talleristas:</strong> Alejandra Cepeda y Silvia Sunino.</p><p><strong>Edad:</strong> 3 a 6 años · <strong>Cupo:</strong> 25 niños/as · <strong>Horario:</strong> 15:00 a 16:00 · <strong>Duración:</strong> 60 minutos.</p><p>Propuesta lúdica e inmersiva para explorar la megafauna del Pleistoceno mediante juego, pistas, movimiento, desafíos sensoriales y recorrido por el museo.</p><ul><li><strong>Lunes 27/07:</strong> apertura, presentación inicial y recorrida por el museo.</li><li><strong>Martes 28/07:</strong> desafíos entre gigantes, código fósil, huellas, túneles y cofre final.</li><li><strong>Miércoles 29/07:</strong> excavación paleontológica, laboratorio de fósiles y moldes.</li><li><strong>Jueves 30/07:</strong> megafauna arroyeña, alimentación, huellas y cajas sensoriales.</li><li><strong>Viernes 31/07:</strong> cierre de aventura, juego final y síntesis.</li></ul>`
   },
   hielo_exploradores: {
     label:'Excursión a la Edad de Hielo. Un viaje paleontológico', age:'7 a 12 años', capacity:20, multi:true,
-    intro:'Cinco talleres distintos: paleontología, fósiles, megafauna, microfauna y cierre integrador.',
+    talleristas:'Caro Mosto y Ana Forasiepi',
+    intro:'Cinco talleres distintos sobre paleontología, fósiles, megafauna, microfauna y cierre integrador.',
     dates:[
-      {fecha:'2026-07-27', titulo:'Descubriendo el Pago de los Arroyos y sus fósiles', detalle:'Presentación, recorrido por el museo y juego de pistas para descubrir fósiles y especies actuales y pasadas.'},
-      {fecha:'2026-07-28', titulo:'Paleontólogos por un día: fósiles y tiempo geológico', detalle:'Cajón de arena, herramientas del paleontólogo, copias en yeso, deriva continental y calendario de la vida.'},
-      {fecha:'2026-07-29', titulo:'La megafauna: gigantes, dientes y locomoción', detalle:'Anatomía comparada, dientes y dietas, esqueletos, locomoción y escena colectiva de ecosistema pampeano.'},
-      {fecha:'2026-07-30', titulo:'Minimundos: lupa, microscopio y microfauna', detalle:'Observación de pelos, plumas, escamas, placas, insectos, preparados y estructuras macro y microscópicas.'},
-      {fecha:'2026-07-31', titulo:'Cierre de exploradores: preguntas, dibujos y descubrimientos', detalle:'Síntesis de la semana, respuestas del buzón de preguntas, dibujos y armado de panel colectivo.'}
+      {fecha:'2026-07-27', titulo:'Lunes 27/07 · Descubriendo el Pago de los Arroyos y sus fósiles', icon:'◆', detalle:'Presentación inicial, recorrida por el museo y juego de pistas para reconocer fósiles, especies actuales y especies del pasado regional.'},
+      {fecha:'2026-07-28', titulo:'Martes 28/07 · Paleontólogos por un día', icon:'◆', detalle:'Cajón de arena, herramientas del paleontólogo, réplicas y copias en yeso, deriva continental y calendario de la vida.'},
+      {fecha:'2026-07-29', titulo:'Miércoles 29/07 · Megafauna, dientes y locomoción', icon:'◆', detalle:'Anatomía comparada, dientes y dietas, esqueletos, locomoción y armado de una escena colectiva del ecosistema pampeano.'},
+      {fecha:'2026-07-30', titulo:'Jueves 30/07 · Minimundos: lupa, microscopio y microfauna', icon:'◆', detalle:'Observación de pelos, plumas, escamas, placas, insectos, preparados y estructuras macro y microscópicas.'},
+      {fecha:'2026-07-31', titulo:'Viernes 31/07 · Cierre de exploradores', icon:'◆', detalle:'Síntesis de la semana, buzón de preguntas, dibujos, descubrimientos y armado de panel colectivo.'}
     ],
-    ficha:`<h2>Excursión a la Edad de Hielo. Un viaje paleontológico</h2><p><strong>Edad:</strong> 7 a 12 años · <strong>Cupo:</strong> 20 participantes · <strong>Horario:</strong> 15:00 a 16:00 · <strong>Duración:</strong> 60 minutos.</p><p>Semana de cinco talleres distintos. Los talleres no se repiten: se pueden tomar sueltos o como combo semanal con descuento.</p><ul><li>Paleontología, fósiles y tiempo geológico.</li><li>Megafauna, microfauna, anatomía, dientes, dietas, esqueleto y locomoción.</li><li>Actividades lúdicas con recorridos, cajón de arena, yeso, lupas, microscopio, dibujos y panel final.</li></ul>`
+    ficha:`<h2>Excursión a la Edad de Hielo. Un viaje paleontológico</h2><p><strong>Talleristas:</strong> Caro Mosto y Ana Forasiepi.</p><p><strong>Edad:</strong> 7 a 12 años · <strong>Cupo:</strong> 20 participantes · <strong>Horario:</strong> 15:00 a 16:00 · <strong>Duración:</strong> 60 minutos.</p><p>Semana de cinco talleres distintos. Los encuentros no se repiten: pueden tomarse por día o como combo semanal con descuento.</p><ul><li><strong>Lunes 27/07:</strong> presentación, recorrida por el museo y juego de pistas sobre fósiles y especies regionales.</li><li><strong>Martes 28/07:</strong> paleontología, herramientas, cajón de arena, copias en yeso y tiempo geológico.</li><li><strong>Miércoles 29/07:</strong> megafauna, dientes, dietas, esqueletos y locomoción.</li><li><strong>Jueves 30/07:</strong> lupa, microscopio, microfauna y observación de estructuras pequeñas.</li><li><strong>Viernes 31/07:</strong> cierre integrador, preguntas, dibujos y panel colectivo.</li></ul>`
   }
 };
 let selectedProgram='escuelas', viewDate=new Date(programs.escuelas.startMonth), selectedDate=null, selectedSlot=null, selectedDates=[], currentSlots={}, currentDaySummary={}, mobileFocusedDate=null, availabilityStatus='checking';
@@ -422,10 +430,10 @@ function renderProgramInfo(){
   let capacityText='';
   if(selectedProgram==='escuelas') capacityText='<br><span class="small">Grupo sugerido: hasta 30 alumnos. Si el grupo supera esa cantidad, el formulario avisa cuántos grupos conviene organizar.</span>';
   else if(selectedProgram==='publico') capacityText='<br><span class="small">Cupo por turno: 20 personas. Turnos de una hora, con inscripción previa.</span>';
-  else if(selectedProgram==='hielo') capacityText='<br><span class="small">Cupo según taller y por cada día: 20 participantes para 7 a 12 años y 25 para 3 a 6 años.</span>';
+  else if(selectedProgram==='hielo') capacityText='<br><span class="small">Cupos por día: 20 participantes para 7 a 12 años y 25 para 3 a 6 años.</span><br><span class="discount-inline">Descuento visible: si elegís los 5 días del mismo taller, se aplica combo semanal de $ 24.000 por participante.</span>';
   else if(selectedProgram==='mundos') capacityText='<br><span class="small">Actividad especial con modalidad por pase o por días particulares.</span>';
   else capacityText='<br><span class="small">Próximamente: fechas, cupos y valores a confirmar.</span>';
-  if(selectedProgram==='hielo') extra='<br><span class="small">Hay dos propuestas por edad. Elegí participantes y fechas en uno o en ambos talleres.</span>';
+  if(selectedProgram==='hielo') extra='';
   if(selectedProgram==='mundos') extra='<br><span class="small">El pase completo incluye todos los días disponibles de las jornadas. Las actividades puntuales se seleccionan como días particulares.</span>';
   els.info.innerHTML=`<strong>${p.title}.</strong> ${p.intro}${capacityText}${extra}`;
   els.modality.innerHTML=p.modalities.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
@@ -478,8 +486,7 @@ function updateConditionalFields(){
 function dateChoiceLabelForHielo(item, idx, key){
   const cfg=getHieloConfig(key),capacity=(cfg.capacity||programs.hielo.capacity);
   if(!cfg.multi)return `<strong class="enc-title">${fmtDate(item.fecha)}</strong><span class="meta meta-time">15:00 a 16:00 · 60 minutos · hasta ${capacity} cupos</span>`;
-  const icons=['🧭','⛏️','🦣','🔬','🎨'];
-  const icon=(key==='hielo_exploradores')?`<span class="act-icon" aria-hidden="true">${icons[idx]||'•'}</span>`:'';
+  const icon=`<span class="act-icon" aria-hidden="true">${item.icon||'◆'}</span>`;
   return `<strong class="enc-title">${icon}${item.titulo}</strong><span class="meta meta-date">${fmtDate(item.fecha)}</span><span class="meta meta-time">15:00 a 16:00 · 60 minutos · hasta ${capacity} cupos</span><span class="meta meta-desc">${item.detalle}</span>`
 }
 function mundosLabel(d){const date=parseDate(d);return `${DAY_NAMES[date.getDay()]} ${shortDate(d)}`}
@@ -496,7 +503,7 @@ function renderSpecialOptions(){
       const cfg=getHieloConfig(key), st=hieloState[key]||{participants:0,dates:[]};
       const datesHtml=cfg.dates.map((item,i)=>`<label class="date-choice ${i===0?'hielo-opening':''}"><input type="checkbox" name="hieloDay_${key}" value="${item.fecha}" ${(st.dates||[]).includes(item.fecha)?'checked':''} ${isPast(item.fecha)?'disabled':''}><span>${dateChoiceLabelForHielo(item,i,key)}</span></label>`).join('');
       return `<div class="hielo-workshop-block" data-workshop="${key}">
-        <div class="hielo-workshop-head"><div><h4>${cfg.label}</h4><span class="age-pill">${cfg.age}</span><p class="hielo-workshop-intro">${cfg.intro}</p>${!cfg.multi?'<p class="small hielo-repeat-note">Es el mismo taller en todas las fechas. Elegí sólo el día o los días a los que quieran asistir.</p>':''}</div><button class="ghost ficha-btn" type="button" data-ficha="${key}">Ver ficha</button></div>
+        <div class="hielo-workshop-head"><div><h4>${cfg.label}</h4><span class="age-pill">${cfg.age}</span><p class="hielo-workshop-intro"><strong>Talleristas:</strong> ${cfg.talleristas||'A confirmar'}.</p><p class="hielo-workshop-intro">${cfg.intro}</p>${!cfg.multi?'<p class="small hielo-repeat-note">Es el mismo taller en todas las fechas. Elegí sólo el día o los días a los que quieran asistir.</p>':''}</div><button class="ghost ficha-btn" type="button" data-ficha="${key}">▣ Ver ficha</button></div>
         <div class="hielo-qty-row"><div><label for="qty_${key}">Cantidad de participantes</label>${numberInput(`qty_${key}`,Number(st.participants||0),0,cfg.capacity,`class="hieloQty" data-workshop="${key}"`)}</div><p class="small">Si queda en 0, este taller no se computa. Podés completar uno o los dos talleres en la misma solicitud.</p></div>
         <details class="workshop-activity-details" ${((st.dates||[]).length||Number(st.participants||0)>0)?'open':''}>
           <summary>Actividades y fechas disponibles de este taller</summary>
@@ -525,7 +532,14 @@ function hieloSelectedDatesAll(){ensureHieloState();return [...new Set(hieloKeys
 function hieloWorkshopDetailText(){return hieloKeys().map(k=>{const cfg=getHieloConfig(k),st=hieloState[k]||{};const q=Number(st.participants||0),ds=(st.dates||[]);return (q>0&&ds.length)?`${cfg.label} (${cfg.age}): ${q} participante(s), ${ds.map(shortDate).join(', ')}`:''}).filter(Boolean).join(' | ')}
 function updateSpecialNotices(){
   const h=$('hieloDiscount');
-  if(h){h.classList.add('hidden');h.innerHTML='';}
+  if(h){
+    h.classList.add('hidden');h.innerHTML='';
+    if(selectedProgram==='hielo'){
+      const full=hieloKeys().filter(k=>{const cfg=getHieloConfig(k),st=hieloState[k]||{};return Number(st.participants||0)>0 && (st.dates||[]).length===cfg.dates.length;});
+      if(full.length){h.classList.remove('hidden');h.innerHTML='Combo semanal aplicado: $ 24.000 por participante en '+full.map(k=>getHieloConfig(k).age).join(' y ')+'.';}
+      else {h.classList.remove('hidden');h.innerHTML='Valor: $ 6.000 por día. Si elegís los 5 días del mismo taller, se aplica combo semanal de $ 24.000 por participante.';}
+    }
+  }
   const m=$('mundosDiscount');
   if(selectedProgram==='mundos'&&m){m.classList.toggle('hidden',false);m.textContent=mundosMode==='Pase completo'?'Pase completo seleccionado.':'Días particulares seleccionados: '+mundosSelected.length;}
 }
@@ -752,7 +766,7 @@ function currentSelectionSlots(){
   return selectedDate&&selectedSlot&&!isPast(selectedDate)?[{fecha:selectedDate,horario:selectedSlot}]:[];
 }
 function calcPrice(){const p=programs[selectedProgram];const slots=currentSelectionSlots();if(p.priceMode==='a_confirmar')return 0;if(p.priceMode==='hielo_multi'){let total=0;hieloKeys().forEach(k=>{const cfg=getHieloConfig(k),st=hieloState[k]||{},q=Number(st.participants||0),count=(st.dates||[]).filter(d=>!isPast(d)).length;if(q>0&&count>0){const perPerson=(cfg.multi&&count===cfg.dates.length)?p.prices.combo:p.prices.individual*count;total+=perPerson*q;}});return total}if(p.priceMode==='mundos_multi'){const adults=Math.max(0,Number(els.people.value||0));return (mundosMode==='Pase completo'?p.prices.pase:p.prices.dia*slots.length)*adults}const n=Math.max(1,Number(els.people.value||1));const base=p.prices[els.groupType.value]??p.prices.general??0;const mod=selectedModalityObj();return base*n*(mod.multiplier||1)}
-function priceNoteText(count){if(selectedProgram==='hielo')return 'Cálculo según participantes y fechas elegidas en cada taller.';if(selectedProgram==='mundos')return mundosMode==='Pase completo'?'Pase completo con descuento aplicado.':'Cálculo por días particulares seleccionados.';return 'Importe orientativo según modalidad y participantes.'}
+function priceNoteText(count){if(selectedProgram==='hielo')return 'Edad del Hielo: $ 6.000 por día; combo semanal $ 24.000 por participante al elegir los 5 días del mismo taller.';if(selectedProgram==='mundos')return mundosMode==='Pase completo'?'Pase completo con descuento aplicado.':'Cálculo por días particulares seleccionados.';return 'Importe orientativo según modalidad y participantes.'}
 function updateSummary(){const p=programs[selectedProgram], slots=currentSelectionSlots(); let n=Math.max(1,Number(els.people.value||1)); if(selectedProgram==='hielo')n=hieloTotalParticipants(); if(selectedProgram==='mundos'){mundosAdults=Math.max(0,Number(mundosAdults||0));n=mundosAdults+mundosMinors} $('sumProgram').textContent=p.title; $('sumModality').textContent=selectedProgram==='hielo'?hieloWorkshopLabel():selectedProgram==='mundos'?mundosMode:(selectedProgram==='escuelas'?els.modality.value:'Reserva'); $('sumPeople').textContent=selectedProgram==='hielo'?hieloParticipantSummary():(selectedProgram==='mundos'?`${n} (${mundosAdults} adultos, ${mundosMinors} menores de 3 años sin cargo)`:n); $('sumGroups').textContent=selectedProgram==='escuelas'?groupCount():1; $('sumDate').innerHTML=slotsToSummaryHtml(slots); $('sumSlot').textContent=slots.length?[...new Set(slots.map(s=>s.horario))].join(' · '):'Sin elegir'; if(p.priceMode==='a_confirmar'||!slots.length){$('sumPrice').textContent='A confirmar';$('priceNote').textContent=slots.length?'Esta propuesta todavía no tiene fecha ni valor publicados.':'El importe se calcula después de elegir fecha y horario.'} else {$('sumPrice').textContent=money(calcPrice());$('priceNote').textContent=priceNoteText(slots.length)} if(selectedProgram==='escuelas'&&Number(els.people.value)>p.capacity){els.warning.classList.remove('hidden');els.warning.innerHTML=`El grupo supera los ${p.capacity} alumnos. Recomendamos dividirlo y realizar ${groupCount()} reservas, una por grupo.`} else els.warning.classList.add('hidden'); updateSpecialNotices();}
 function makeReservationCode(){const d=new Date();return `MSC-${backendProgram().toUpperCase().slice(0,4)}-${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}-${Math.random().toString(36).slice(2,7).toUpperCase()}`}
 function collectData(code){
