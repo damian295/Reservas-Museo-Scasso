@@ -8,9 +8,9 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.7 FINAL INDEX ESTABLE: conserva la lectura de cupos que funcionó en v12.1.
-     Cambios: sin mensajes técnicos públicos, sin cupos duplicados cuando hay un solo turno,
-     cache-buster interno para evitar que el navegador mantenga HTML viejo. NO tocar Apps Script. -->
+<!-- v12.8 FINAL INDEX PUBLICO ESTABLE: conserva la lectura de cupos que funcionó,
+     agrega indicador de carga público, recupera lectura por JSONP + iframe + respaldo,
+     oculta mensajes técnicos y NO toca Apps Script / planilla / calendarios. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -245,7 +245,11 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 
 .day-summary{display:inline-flex;align-self:flex-start;margin:2px 0 1px;padding:3px 7px;border-radius:999px;background:#fff3d5;color:#6a4310;border:1px solid #e2bf78;font-size:.66rem;font-weight:950;line-height:1.05}
 .day-summary.ok{background:#eaf8ef;color:#17472e;border-color:#b7d9c5}.day-summary.full{background:#ead6cd;color:#8b2d20;border-color:#d2a99c}
-@media(max-width:720px){.day-summary{font-size:.58rem;padding:2px 5px;max-width:100%;white-space:normal;text-align:center}}
+.availability-loading{display:flex;align-items:center;gap:10px}
+.loading-spinner{width:18px;height:18px;border:3px solid rgba(122,75,40,.22);border-top-color:var(--brand2);border-radius:50%;display:inline-block;animation:scassoSpin .85s linear infinite;flex:none}
+.availability-soft{border-left-color:var(--brand2);background:#edf7f5;color:#17454a}
+@keyframes scassoSpin{to{transform:rotate(360deg)}}
+@media(max-width:720px){.day-summary{font-size:.58rem;padding:2px 5px;max-width:100%;white-space:normal;text-align:center}.availability-loading{align-items:flex-start}}
 
 </style>
 </head>
@@ -262,7 +266,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 <footer>Museo de Ciencias Naturales A. Scasso · Don Bosco 580 · San Nicolás de los Arroyos · visitas@museoscasso.com.ar · info@museoscasso.com.ar</footer>
 </div>
 <script>
-const FRONTEND_VERSION = '12.6-final-index-estable-no-tocar-gs';
+const FRONTEND_VERSION = '12.8-final-publico-estable-spinner-no-tocar-gs';
 const CUPOS_SPREADSHEET_ID = '12nsmnr5NuoFSZrHUU4oxG5ek8VpFkLR9FauJEGLwaao';
 const CUPOS_PUBLIC_SHEET_NAME = 'Cupos públicos';
 const CUPOS_PUBLIC_GID = '1386957732';
@@ -534,7 +538,7 @@ function fetchAvailabilityViaIframe(program,month){
     iframe.style.display='none';
     iframe.name=callbackId;
     const cleanup=()=>{window.removeEventListener('message',handler);if(iframe.parentNode)iframe.parentNode.removeChild(iframe)};
-    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer cupos'))},35000);
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer disponibilidad'))},75000);
     function handler(ev){
       const data=ev.data||{};
       if(!data||data.callbackId!==callbackId)return;
@@ -556,7 +560,7 @@ function fetchAvailabilityViaJsonp(program,month){
     script.id='scassoAvailabilityScript';
     script.async=true;
     const cleanup=()=>{try{delete window[cb]}catch(e){window[cb]=undefined} if(script.parentNode)script.parentNode.removeChild(script)};
-    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer cupos'))},30000);
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer disponibilidad'))},75000);
     window[cb]=payload=>{if(done)return;done=true;clearTimeout(timer);cleanup();resolve(payload)};
     script.onerror=()=>{if(done)return;done=true;clearTimeout(timer);cleanup();reject(new Error('No se pudo leer cupos por JSONP'))};
     const params=new URLSearchParams({action:'availability',program:program,month:month,live:'1',nocache:'1',callback:cb,v:String(Date.now())});
@@ -631,12 +635,12 @@ async function loadAvailability(){
   if(!p.accepting){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('<strong>Próximamente.</strong> Esta experiencia todavía no tiene fechas habilitadas.');return;}
   if(selectedProgram==='mundos'){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('');return;}
 
-  // v12.0: la web consulta Apps Script para calcular cupos EN VIVO desde la planilla
-  // Reservas + calendarios ROJO/VERDE/MAGENTA. La hoja pública queda sólo como respaldo.
+  // v12.8: primero muestra los horarios base y, mientras tanto, consulta disponibilidad real.
+  // No se muestran datos técnicos en público. Si la consulta demora, el visitante ve que el sistema está trabajando.
   availabilityStatus='checking';
   currentSlots=local;
   renderCalendar();
-  showAvailabilityMessage('<strong>Consultando disponibilidad…</strong> Estamos verificando los turnos disponibles.');
+  showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Consultando disponibilidad…</strong> Estamos actualizando turnos y cupos.</span></div>','availability-soft');
 
   const program=backendProgram();
   const month=ym(viewDate);
@@ -644,28 +648,30 @@ async function loadAvailability(){
   loadAvailability._last=requestStamp;
   try{
     let payload=null;
-    let sourceLabel='';
     try{
       payload=await fetchAvailabilityViaJsonp(program,month);
-      sourceLabel=(payload&&payload.source)?payload.source:'Apps Script: cupos en vivo desde planilla + calendarios reales';
-      if(!payload||!payload.ok||!payload.slots) throw new Error((payload&&payload.message)||'Apps Script no devolvió cupos válidos.');
+      if(!payload||!payload.ok||!payload.slots) throw new Error((payload&&payload.message)||'No se recibió disponibilidad válida.');
     }catch(appErr){
-      payload=await fetchAvailabilityFromPublishedSheet(program,month);
-      sourceLabel='hoja pública Cupos públicos';
-      if(!payload||!payload.slots) throw new Error('La hoja pública no devolvió cupos válidos.');
+      try{
+        payload=await fetchAvailabilityViaIframe(program,month);
+        if(!payload||!payload.ok||!payload.slots) throw new Error((payload&&payload.message)||'No se recibió disponibilidad válida.');
+      }catch(frameErr){
+        payload=await fetchAvailabilityFromPublishedSheet(program,month);
+        if(!payload||!payload.slots) throw new Error('No se recibió disponibilidad válida.');
+      }
     }
     if(loadAvailability._last!==requestStamp)return;
     availabilityStatus='ok';
     currentSlots=mergeLocalAndRemoteSlots_(local,payload.slots||{});
     currentDaySummary=payload.daySummary||{};
-    // v12.7: si los cupos cargan bien, no se muestra ningún cartel técnico en la web pública.
     showAvailabilityMessage('', 'availability-ok');
   }catch(err){
     if(loadAvailability._last!==requestStamp)return;
     availabilityStatus='reference';
     currentSlots=local;
     currentDaySummary={};
-    showAvailabilityMessage('<strong>No pudimos actualizar la disponibilidad en este momento.</strong> Recargá la página o consultanos para confirmar cupos.','');
+    // No mostrar errores técnicos al público. Los horarios base quedan visibles y el envío se valida en Apps Script.
+    showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Estamos actualizando la disponibilidad.</strong> Podés elegir un horario; antes de registrar la solicitud el sistema vuelve a validar el cupo.</span></div>','availability-soft');
   }
   renderCalendar();
 }
