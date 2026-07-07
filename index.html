@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.4: reversión segura al HTML v12.1 que mostró cupos reales; sólo se limpian mensajes públicos de carga/error.
+<!-- v11.6: web pública lee Cupos públicos por Apps Script liviano y usa URL pública como respaldo. Cupos reales con estado "consultando" visible,
      sin cupos falsos si Apps Script no responde, verificación de versión del backend
      y "Talleres de la Edad del Hielo" con nombre correcto. Gestión real desde planilla. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
@@ -635,7 +635,7 @@ async function loadAvailability(){
   availabilityStatus='checking';
   currentSlots=local;
   renderCalendar();
-  showAvailabilityMessage('<strong>Consultando disponibilidad…</strong> Un momento, estamos verificando los turnos disponibles.');
+  showAvailabilityMessage('<strong>Consultando cupos reales…</strong> Se leen planilla y calendarios ROJO/VERDE/MAGENTA. No se muestran cupos inventados.');
 
   const program=backendProgram();
   const month=ym(viewDate);
