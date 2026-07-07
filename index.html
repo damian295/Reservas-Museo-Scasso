@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v11.5: web pública lee Cupos públicos por URL pública 2PACX exacta. Cupos reales con estado "consultando" visible,
+<!-- v11.6: web pública lee Cupos públicos por Apps Script liviano y usa URL pública como respaldo. Cupos reales con estado "consultando" visible,
      sin cupos falsos si Apps Script no responde, verificación de versión del backend
      y "Talleres de la Edad del Hielo" con nombre correcto. Gestión real desde planilla. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
@@ -259,7 +259,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 <footer>Museo de Ciencias Naturales A. Scasso · Don Bosco 580 · San Nicolás de los Arroyos · visitas@museoscasso.com.ar · info@museoscasso.com.ar</footer>
 </div>
 <script>
-const FRONTEND_VERSION = '11.5-cupos-publicos-url-publica-exacta';
+const FRONTEND_VERSION = '11.6-cupos-publicos-appscript-liviano';
 const CUPOS_SPREADSHEET_ID = '12nsmnr5NuoFSZrHUU4oxG5ek8VpFkLR9FauJEGLwaao';
 const CUPOS_PUBLIC_SHEET_NAME = 'Cupos públicos';
 const CUPOS_PUBLIC_GID = '1386957732';
@@ -630,30 +630,40 @@ async function loadAvailability(){
   if(!p.accepting){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('<strong>Próximamente.</strong> Esta experiencia todavía no tiene fechas habilitadas.');return;}
   if(selectedProgram==='mundos'){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('');return;}
 
-  // v11: camino distinto. La web NO le pide a Apps Script que calcule cupos.
-  // Lee directamente la hoja pública "Cupos públicos". Mientras carga, muestra los turnos posibles sin cupos inventados.
+  // v11.6: salida del bucle. Primero se consulta Apps Script SOLO para leer la tabla ya calculada
+  // "Cupos públicos". No recalcula calendarios en vivo. Si eso falla, recién usa la URL pública 2PACX.
   availabilityStatus='checking';
   currentSlots=local;
   renderCalendar();
-  showAvailabilityMessage('<strong>Consultando Cupos públicos…</strong> Los turnos siguen visibles. No se muestran cupos inventados.');
+  showAvailabilityMessage('<strong>Consultando cupos publicados…</strong> Los turnos siguen visibles. No se muestran cupos inventados.');
 
   const program=backendProgram();
   const month=ym(viewDate);
   const requestStamp=program+'|'+month;
   loadAvailability._last=requestStamp;
   try{
-    const payload=await fetchAvailabilityFromPublishedSheet(program,month);
+    let payload=null;
+    let sourceLabel='';
+    try{
+      payload=await fetchAvailabilityViaJsonp(program,month);
+      sourceLabel='Apps Script leyendo la hoja Cupos públicos';
+      if(!payload||!payload.ok||!payload.slots) throw new Error((payload&&payload.message)||'Apps Script no devolvió cupos válidos.');
+    }catch(appErr){
+      payload=await fetchAvailabilityFromPublishedSheet(program,month);
+      sourceLabel='hoja pública Cupos públicos';
+      if(!payload||!payload.slots) throw new Error('La hoja pública no devolvió cupos válidos.');
+    }
     if(loadAvailability._last!==requestStamp)return;
     availabilityStatus='ok';
     currentSlots=mergeLocalAndRemoteSlots_(local,payload.slots||{});
     currentDaySummary=payload.daySummary||{};
-    showAvailabilityMessage('<strong>Cupos actualizados.</strong> La disponibilidad fue leída desde la hoja pública <em>Cupos públicos</em>.','availability-ok');
+    showAvailabilityMessage('<strong>Cupos actualizados.</strong> Fuente: '+escapeHtmlText(sourceLabel)+'.','availability-ok');
   }catch(err){
     if(loadAvailability._last!==requestStamp)return;
     availabilityStatus='reference';
     currentSlots=local;
     currentDaySummary={};
-    showAvailabilityMessage('<strong>No se pudo leer Cupos públicos.</strong> Los turnos quedan visibles para seleccionar, pero sin cupos inventados. Publicá la hoja <em>Cupos públicos</em> o ejecutá <code>action=recalcular_cupos</code> en Apps Script.<div class="connection-hint">Detalle: '+escapeHtmlText(err&&err.message?err.message:String(err||''))+'</div>','');
+    showAvailabilityMessage('<strong>No se pudieron leer cupos reales.</strong> Los turnos quedan visibles, pero sin inventar cantidades.<div class="connection-hint">Detalle técnico: '+escapeHtmlText(err&&err.message?err.message:String(err||''))+'</div>','');
   }
   renderCalendar();
 }
