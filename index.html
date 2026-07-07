@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.2: cupos vivos desde Apps Script y calendario limpio sin duplicar cupos por día. Cupos reales con estado "consultando" visible,
+<!-- v12.3: cupos vivos desde Apps Script con doble lectura JSONP/iframe y calendario limpio sin duplicar cupos por día. Cupos reales con estado "consultando" visible,
      sin cupos falsos si Apps Script no responde, verificación de versión del backend
      y "Talleres de la Edad del Hielo" con nombre correcto. Gestión real desde planilla. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
@@ -259,7 +259,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 <footer>Museo de Ciencias Naturales A. Scasso · Don Bosco 580 · San Nicolás de los Arroyos · visitas@museoscasso.com.ar · info@museoscasso.com.ar</footer>
 </div>
 <script>
-const FRONTEND_VERSION = '12.1-cupos-vivos-url-nueva';
+const FRONTEND_VERSION = '12.3-cupos-vivos-jsonp-iframe-sin-duplicar';
 const CUPOS_SPREADSHEET_ID = '12nsmnr5NuoFSZrHUU4oxG5ek8VpFkLR9FauJEGLwaao';
 const CUPOS_PUBLIC_SHEET_NAME = 'Cupos públicos';
 const CUPOS_PUBLIC_GID = '1386957732';
@@ -647,11 +647,21 @@ async function loadAvailability(){
     try{
       payload=await fetchAvailabilityViaJsonp(program,month);
       sourceLabel=(payload&&payload.source)?payload.source:'Apps Script: cupos en vivo desde planilla + calendarios reales';
-      if(!payload||!payload.ok||!payload.slots) throw new Error((payload&&payload.message)||'Apps Script no devolvió cupos válidos.');
+      if(!payload||!payload.ok||!payload.slots) throw new Error((payload&&payload.message)||'Apps Script no devolvió cupos válidos por JSONP.');
     }catch(appErr){
-      payload=await fetchAvailabilityFromPublishedSheet(program,month);
-      sourceLabel='hoja pública Cupos públicos';
-      if(!payload||!payload.slots) throw new Error('La hoja pública no devolvió cupos válidos.');
+      try{
+        payload=await fetchAvailabilityViaIframe(program,month);
+        sourceLabel=(payload&&payload.source)?payload.source:'Apps Script: cupos en vivo vía iframe';
+        if(!payload||!payload.ok||!payload.slots) throw new Error((payload&&payload.message)||'Apps Script no devolvió cupos válidos por iframe.');
+      }catch(frameErr){
+        try{
+          payload=await fetchAvailabilityFromPublishedSheet(program,month);
+          sourceLabel='hoja pública Cupos públicos';
+          if(!payload||!payload.slots) throw new Error('La hoja pública no devolvió cupos válidos.');
+        }catch(sheetErr){
+          throw new Error('Apps Script no respondió por JSONP ni iframe. Último respaldo falló: '+(sheetErr&&sheetErr.message?sheetErr.message:String(sheetErr||'')));
+        }
+      }
     }
     if(loadAvailability._last!==requestStamp)return;
     availabilityStatus='ok';
