@@ -4,10 +4,13 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v11.6: web pública lee Cupos públicos por Apps Script liviano y usa URL pública como respaldo. Cupos reales con estado "consultando" visible,
-     sin cupos falsos si Apps Script no responde, verificación de versión del backend
-     y "Talleres de la Edad del Hielo" con nombre correcto. Gestión real desde planilla. -->
+<!-- v12.6 FINAL INDEX ESTABLE: conserva la lectura de cupos que funcionó en v12.1.
+     Cambios: sin mensajes técnicos públicos, sin cupos duplicados cuando hay un solo turno,
+     cache-buster interno para evitar que el navegador mantenga HTML viejo. NO tocar Apps Script. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -259,7 +262,7 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 <footer>Museo de Ciencias Naturales A. Scasso · Don Bosco 580 · San Nicolás de los Arroyos · visitas@museoscasso.com.ar · info@museoscasso.com.ar</footer>
 </div>
 <script>
-const FRONTEND_VERSION = '12.1-cupos-vivos-url-nueva';
+const FRONTEND_VERSION = '12.6-final-index-estable-no-tocar-gs';
 const CUPOS_SPREADSHEET_ID = '12nsmnr5NuoFSZrHUU4oxG5ek8VpFkLR9FauJEGLwaao';
 const CUPOS_PUBLIC_SHEET_NAME = 'Cupos públicos';
 const CUPOS_PUBLIC_GID = '1386957732';
@@ -635,7 +638,7 @@ async function loadAvailability(){
   availabilityStatus='checking';
   currentSlots=local;
   renderCalendar();
-  showAvailabilityMessage('<strong>Consultando cupos reales…</strong> Se leen planilla y calendarios ROJO/VERDE/MAGENTA. No se muestran cupos inventados.');
+  showAvailabilityMessage('<strong>Consultando disponibilidad…</strong> Estamos verificando los turnos disponibles.');
 
   const program=backendProgram();
   const month=ym(viewDate);
@@ -659,13 +662,13 @@ async function loadAvailability(){
     currentDaySummary=payload.daySummary||{};
     const warn=backendVersionWarning(payload);
     const extra=(payload&&payload.warning)?'<div class="connection-hint">'+escapeHtmlText(payload.warning)+'</div>':'';
-    showAvailabilityMessage('<strong>Cupos actualizados.</strong> Fuente: '+escapeHtmlText(sourceLabel)+'.'+warn+extra,'availability-ok');
+    showAvailabilityMessage('<strong>Disponibilidad actualizada.</strong>'+warn+extra,'availability-ok');
   }catch(err){
     if(loadAvailability._last!==requestStamp)return;
     availabilityStatus='reference';
     currentSlots=local;
     currentDaySummary={};
-    showAvailabilityMessage('<strong>No se pudieron leer cupos reales.</strong> Los turnos quedan visibles, pero sin inventar cantidades.<div class="connection-hint">Detalle técnico: '+escapeHtmlText(err&&err.message?err.message:String(err||''))+'</div>','');
+    showAvailabilityMessage('<strong>No pudimos actualizar la disponibilidad en este momento.</strong> Recargá la página o consultanos para confirmar cupos.','');
   }
   renderCalendar();
 }
@@ -687,7 +690,7 @@ function renderCalendar(){
   const year=viewDate.getFullYear(), month=viewDate.getMonth(); els.monthTitle.textContent=new Intl.DateTimeFormat('es-AR',{month:'long',year:'numeric'}).format(viewDate).replace(/^./,c=>c.toUpperCase());
   const first=new Date(year,month,1), start=new Date(year,month,1-((first.getDay()+6)%7)); let html='';
   for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const key=ymd(d), inMonth=d.getMonth()===month, past=isPast(key), isToday=(key===ymd(today)), slots=past?[]:(currentSlots[key]||[]);html+=`<div class="day ${inMonth?'':'muted'} ${past?'past':''} ${isToday?'today':''}" data-date="${key}"><div class="n">${d.getDate()}</div>`; const ds=currentDaySummary[key]; if(ds&&inMonth&&!past){const lbl=ds.label||''; const full=(Number(ds.openSlots||0)<=0); html+=`<span class="day-summary ${full?'full':'ok'}">${lbl}</span>`;}
-    if(slots.length){html+=slots.map(([time,available,remaining])=>{const checking=(availabilityStatus==='checking');const multiActive=selectedDates.includes(key);const active=(selectedDate===key&&selectedSlot===time)||multiActive;const cls=!available?(checking?'closed':'full'):active?'active combo':'';const adjustedRemaining=visibleCapacityForSlot(key,time,remaining);const showRemaining=(adjustedRemaining!==''&&adjustedRemaining!==null&&adjustedRemaining!==undefined);const label=!available?(checking?time:'Completo'):selectedProgram==='mundos'?(active?'Incluido':'Elegir'):(active?`✓ ${time}`:`${time}`);return `<button type="button" class="slot ${cls} ${showRemaining?'has-quota':''}" ${(!available||past)?'disabled':''} data-date="${key}" data-time="${time}" data-short="${time}"><span class="slot-time">${label}</span>${available&&showRemaining?`<span class="quota-badge">${adjustedRemaining} cupos</span>`:''}</button>`}).join('')}
+    if(slots.length){html+=slots.map(([time,available,remaining])=>{const checking=(availabilityStatus==='checking');const multiActive=selectedDates.includes(key);const active=(selectedDate===key&&selectedSlot===time)||multiActive;const cls=!available?(checking?'closed':'full'):active?'active combo':'';const adjustedRemaining=visibleCapacityForSlot(key,time,remaining);const showRemaining=(adjustedRemaining!==''&&adjustedRemaining!==null&&adjustedRemaining!==undefined&&!(ds&&slots.length===1));const label=!available?(checking?time:'Completo'):selectedProgram==='mundos'?(active?'Incluido':'Elegir'):(active?`✓ ${time}`:`${time}`);return `<button type="button" class="slot ${cls} ${showRemaining?'has-quota':''}" ${(!available||past)?'disabled':''} data-date="${key}" data-time="${time}" data-short="${time}"><span class="slot-time">${label}</span>${available&&showRemaining?`<span class="quota-badge">${adjustedRemaining} cupos</span>`:''}</button>`}).join('')}
     else if(inMonth&&!past){html+='<button type="button" class="slot closed" disabled>Sin turno</button>'} html+='</div>'}
   els.days.innerHTML=html;
   document.querySelectorAll('.slot:not(.full):not(.closed)').forEach(b=>b.addEventListener('click',()=>handleSlotClick(b.dataset.date,b.dataset.time)));
@@ -702,7 +705,7 @@ function handleSlotClick(date,time){
 }
 function toggleInArray(arr,value){const idx=arr.indexOf(value);if(idx>=0)arr.splice(idx,1);else arr.push(value);arr.sort()}
 function normalizeSlotForRender(slot){if(Array.isArray(slot))return {time:slot[0],available:slot[1]!==false,remaining:slot[2],used:slot[3]};if(slot&&typeof slot==='object')return {time:slot.time||slot.horario||slot.slot||'',available:slot.available!==false,remaining:slot.remaining,used:slot.used};return {time:String(slot||''),available:true,remaining:null,used:null}}
-function renderMobileDayDetail(){const box=$('mobileDayDetail'); if(!box)return; if(!mobileFocusedDate){box.classList.add('hidden');return} const slots=currentSlots[mobileFocusedDate]||[]; box.classList.remove('hidden'); const ds=currentDaySummary[mobileFocusedDate]; const dsHtml=ds?`<div class="day-summary ${Number(ds.openSlots||0)<=0?'full':'ok'}" style="margin-top:6px">${ds.label||''}</div>`:''; box.innerHTML=`<strong>${fmtDate(mobileFocusedDate)}</strong>${dsHtml}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${slots.length?slots.map(raw=>{const s=normalizeSlotForRender(raw);const t=s.time,a=s.available,r=s.remaining;const vr=visibleCapacityForSlot(mobileFocusedDate,t,r);const show=(vr!==''&&vr!==null&&vr!==undefined);const checking=(availabilityStatus==='checking');return `<button type="button" class="slot ${!a?(checking?'closed':'full'):''} ${show?'has-quota':''}" ${!a?'disabled':''} onclick="handleSlotClick('${mobileFocusedDate}','${t}')" data-short="${t}"><span class="slot-time">${a?t:(checking?t:'Completo')}</span>${a&&show?`<span class="quota-badge">${vr} cupos</span>`:''}</button>`}).join(''):'<span class="small">Sin turnos para seleccionar.</span>'}</div>`}
+function renderMobileDayDetail(){const box=$('mobileDayDetail'); if(!box)return; if(!mobileFocusedDate){box.classList.add('hidden');return} const slots=currentSlots[mobileFocusedDate]||[]; box.classList.remove('hidden'); const ds=currentDaySummary[mobileFocusedDate]; const dsHtml=ds?`<div class="day-summary ${Number(ds.openSlots||0)<=0?'full':'ok'}" style="margin-top:6px">${ds.label||''}</div>`:''; box.innerHTML=`<strong>${fmtDate(mobileFocusedDate)}</strong>${dsHtml}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${slots.length?slots.map(raw=>{const s=normalizeSlotForRender(raw);const t=s.time,a=s.available,r=s.remaining;const vr=visibleCapacityForSlot(mobileFocusedDate,t,r);const show=(vr!==''&&vr!==null&&vr!==undefined&&!(ds&&slots.length===1));const checking=(availabilityStatus==='checking');return `<button type="button" class="slot ${!a?(checking?'closed':'full'):''} ${show?'has-quota':''}" ${!a?'disabled':''} onclick="handleSlotClick('${mobileFocusedDate}','${t}')" data-short="${t}"><span class="slot-time">${a?t:(checking?t:'Completo')}</span>${a&&show?`<span class="quota-badge">${vr} cupos</span>`:''}</button>`}).join(''):'<span class="small">Sin turnos para seleccionar.</span>'}</div>`}
 function groupCount(){return Math.ceil(Math.max(1,Number(els.people.value||1))/programs[selectedProgram].capacity)}
 function currentSelectionSlots(){
   if(selectedProgram==='hielo'){
