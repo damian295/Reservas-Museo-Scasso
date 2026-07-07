@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.6 FINAL INDEX ESTABLE: conserva la lectura de cupos que funcionó en v12.1.
+<!-- v12.7 FINAL INDEX ESTABLE: conserva la lectura de cupos que funcionó en v12.1.
      Cambios: sin mensajes técnicos públicos, sin cupos duplicados cuando hay un solo turno,
      cache-buster interno para evitar que el navegador mantenga HTML viejo. NO tocar Apps Script. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
@@ -620,10 +620,8 @@ function disableLocalSlots(local){
   return out;
 }
 function backendVersionWarning(payload){
-  const v=String((payload&&payload.version)||'');
-  if(v.indexOf(EXPECTED_BACKEND_VERSION_PREFIX)===0)return '';
-  const shown=v||'desconocida (backend viejo)';
-  return '<div class="connection-hint"><strong>Atención:</strong> Apps Script está sirviendo la versión <strong>'+escapeHtmlText(shown)+'</strong> y esta web espera la <strong>'+EXPECTED_BACKEND_VERSION_PREFIX+'</strong>. En Apps Script: Implementar → Administrar implementaciones → editar la implementación existente (lápiz) → Nueva versión. No crear una implementación nueva, porque cambia la URL.</div>';
+  // v12.7: diagnóstico interno silenciado. No mostrar versiones ni instrucciones técnicas en la web pública.
+  return '';
 }
 async function loadAvailability(){
   const local=localSlotsForMonth();
@@ -660,9 +658,8 @@ async function loadAvailability(){
     availabilityStatus='ok';
     currentSlots=mergeLocalAndRemoteSlots_(local,payload.slots||{});
     currentDaySummary=payload.daySummary||{};
-    const warn=backendVersionWarning(payload);
-    const extra=(payload&&payload.warning)?'<div class="connection-hint">'+escapeHtmlText(payload.warning)+'</div>':'';
-    showAvailabilityMessage('<strong>Disponibilidad actualizada.</strong>'+warn+extra,'availability-ok');
+    // v12.7: si los cupos cargan bien, no se muestra ningún cartel técnico en la web pública.
+    showAvailabilityMessage('', 'availability-ok');
   }catch(err){
     if(loadAvailability._last!==requestStamp)return;
     availabilityStatus='reference';
