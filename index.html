@@ -578,15 +578,18 @@ async function loadAvailability(){
   const local=localSlotsForMonth();
   updateTodayButton();
   const p=programs[selectedProgram];
+  currentDaySummary={};
   if(!p.accepting){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('<strong>Próximamente.</strong> Esta experiencia todavía no tiene fechas habilitadas.');return;}
   if(selectedProgram==='mundos'){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('');return;}
-  // v9.0: mientras se consulta el backend NO se muestran cupos falsos:
-  // los turnos aparecen deshabilitados con el aviso "Consultando cupos reales…".
+
+  // v10: la grilla nunca desaparece ni queda bloqueada durante la consulta.
+  // Primero se muestran los turnos posibles. Luego, si Administración responde,
+  // se reemplazan por cupos reales. Si falla, quedan visibles como sujetos a verificación.
   availabilityStatus='checking';
-  currentSlots=disableLocalSlots(local);
-  currentDaySummary={};
+  currentSlots=local;
   renderCalendar();
-  showAvailabilityMessage('<strong>Consultando cupos reales…</strong> Los turnos se habilitan en cuanto Administración responde (normalmente pocos segundos).');
+  showAvailabilityMessage('<strong>Consultando cupos de Administración…</strong> Mientras tanto los turnos se muestran como referencia y pueden seleccionarse; la validación final se hará al enviar la solicitud.');
+
   const program=backendProgram();
   const month=ym(viewDate);
   const requestStamp=program+'|'+month;
@@ -596,20 +599,26 @@ async function loadAvailability(){
     backendError=e&&e.message?e.message:String(e||'');
     try{payload=await fetchAvailabilityViaIframe(program,month);}catch(err){backendError+=(backendError?' / ':'')+(err&&err.message?err.message:String(err||''));payload=null;}
   }
-  if(loadAvailability._last!==requestStamp)return; // el usuario ya cambió de mes o de propuesta
+  if(loadAvailability._last!==requestStamp)return;
   if(payload&&payload.ok&&payload.slots!==undefined&&payload.slots!==null){
     availabilityStatus='ok';
-    currentSlots=payload.slots||{};
+    currentSlots=mergeLocalAndRemoteSlots_(local,payload.slots||{});
     currentDaySummary=payload.daySummary||payload.daily||{};
     showAvailabilityMessage('<strong>Cupos actualizados.</strong> La disponibilidad fue leída desde Administración.'+backendVersionWarning(payload),'availability-ok');
   }else{
-    availabilityStatus='error';
-    currentSlots=disableLocalSlots(local);
+    availabilityStatus='reference';
+    currentSlots=local;
     currentDaySummary={};
     const msg=(payload&&payload.message)?payload.message:backendError;
-    showAvailabilityMessage('<strong>No se pudo leer la disponibilidad real.</strong> Para no mostrar cupos falsos, la selección queda bloqueada hasta que Apps Script responda. Probá recargar en unos segundos.'+(msg?'<div class="connection-hint">Detalle técnico: '+escapeHtmlText(msg)+'</div>':'')+((payload&&payload.ok===false)?backendVersionWarning(payload):''));
+    showAvailabilityMessage('<strong>No se pudo leer la disponibilidad real.</strong> Los turnos quedan visibles como referencia; al enviar, el sistema vuelve a validar contra Administración.'+(msg?'<div class="connection-hint">Detalle técnico: '+escapeHtmlText(msg)+'</div>':'')+((payload&&payload.ok===false)?backendVersionWarning(payload):''),'');
   }
   renderCalendar();
+}
+function mergeLocalAndRemoteSlots_(local,remote){
+  const out={};
+  Object.keys(local||{}).forEach(k=>out[k]=[...(local[k]||[])]);
+  Object.keys(remote||{}).forEach(k=>out[k]=remote[k]||[]);
+  return out;
 }
 function selectedPlacesForSlot(date,time){const slots=currentSelectionSlots();if(selectedProgram==='hielo')return slots.filter(s=>s.fecha===date&&s.horario===time).reduce((sum,s)=>sum+Number(s.participantes||0),0);if(selectedProgram==='mundos')return Number(mundosAdults||0)+Number(mundosMinors||0);return Number(els.people.value||0)}
 function visibleCapacityForSlot(date,time,remaining){
