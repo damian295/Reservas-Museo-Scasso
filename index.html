@@ -412,6 +412,21 @@ body[data-program="escuelas"] .day{min-height:62px!important;padding:4px!importa
   .program-visual.hielo{background-position:center top!important;}
 }
 
+
+/* ===== v12.19: estabilización visual sin tocar estructura ===== */
+.program-visual.publico,.program-visual.hielo,.program-visual.mundos,.program-visual.explorando{
+  background-size:cover!important;
+  background-position:center center!important;
+  background-repeat:no-repeat!important;
+  background-color:transparent!important;
+}
+@media(max-width:720px){
+  .program{width:100%!important;max-width:none!important}
+  .program-visual.publico,.program-visual.hielo,.program-visual.mundos,.program-visual.explorando{background-size:cover!important}
+}
+.ficha-btn:before{content:'▣ '!important}
+.program .tag::before{content:none!important;display:none!important}
+
 </style>
 </head>
 <body data-program="escuelas">
@@ -720,7 +735,7 @@ function fetchAvailabilityViaIframe(program,month){
     iframe.style.display='none';
     iframe.name=callbackId;
     const cleanup=()=>{window.removeEventListener('message',handler);if(iframe.parentNode)iframe.parentNode.removeChild(iframe)};
-    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer disponibilidad'))},75000);
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer disponibilidad'))},25000);
     function handler(ev){
       const data=ev.data||{};
       if(!data||data.callbackId!==callbackId)return;
@@ -728,7 +743,7 @@ function fetchAvailabilityViaIframe(program,month){
       done=true;clearTimeout(timer);cleanup();resolve(data.result||data.payload||data);
     }
     window.addEventListener('message',handler);
-    const params=new URLSearchParams({action:'availability',program:program,month:month,live:'1',nocache:'1',iframe:'1',callbackId:callbackId,v:String(Date.now())});
+    const params=new URLSearchParams({action:'availability',program:program,month:month,live:'1',iframe:'1',callbackId:callbackId,v:String(Date.now())});
     iframe.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();
     document.body.appendChild(iframe);
   });
@@ -742,10 +757,10 @@ function fetchAvailabilityViaJsonp(program,month){
     script.id='scassoAvailabilityScript';
     script.async=true;
     const cleanup=()=>{try{delete window[cb]}catch(e){window[cb]=undefined} if(script.parentNode)script.parentNode.removeChild(script)};
-    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer disponibilidad'))},75000);
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Tiempo agotado al leer disponibilidad'))},25000);
     window[cb]=payload=>{if(done)return;done=true;clearTimeout(timer);cleanup();resolve(payload)};
     script.onerror=()=>{if(done)return;done=true;clearTimeout(timer);cleanup();reject(new Error('No se pudo leer cupos por JSONP'))};
-    const params=new URLSearchParams({action:'availability',program:program,month:month,live:'1',nocache:'1',callback:cb,v:String(Date.now())});
+    const params=new URLSearchParams({action:'availability',program:program,month:month,live:'1',callback:cb,v:String(Date.now())});
     script.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();
     document.body.appendChild(script);
   });
@@ -817,8 +832,6 @@ async function loadAvailability(){
   if(!p.accepting){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('<strong>Próximamente.</strong> Esta experiencia todavía no tiene fechas habilitadas.');return;}
   if(selectedProgram==='mundos'){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('');return;}
 
-  // v12.8: primero muestra los horarios base y, mientras tanto, consulta disponibilidad real.
-  // No se muestran datos técnicos en público. Si la consulta demora, el visitante ve que el sistema está trabajando.
   availabilityStatus='checking';
   currentSlots=local;
   renderCalendar();
@@ -828,34 +841,53 @@ async function loadAvailability(){
   const month=ym(viewDate);
   const requestStamp=program+'|'+month;
   loadAvailability._last=requestStamp;
-  try{
-    let payload=null;
-    try{
-      payload=await fetchAvailabilityViaJsonp(program,month);
-      if(!payload||!payload.ok||!payload.slots) throw new Error((payload&&payload.message)||'No se recibió disponibilidad válida.');
-    }catch(appErr){
-      try{
-        payload=await fetchAvailabilityViaIframe(program,month);
-        if(!payload||!payload.ok||!payload.slots) throw new Error((payload&&payload.message)||'No se recibió disponibilidad válida.');
-      }catch(frameErr){
-        payload=await fetchAvailabilityFromPublishedSheet(program,month);
-        if(!payload||!payload.slots) throw new Error('No se recibió disponibilidad válida.');
-      }
-    }
-    if(loadAvailability._last!==requestStamp)return;
+
+  function applyPayload(payload,soft){
+    if(loadAvailability._last!==requestStamp)return false;
+    if(!payload||!payload.ok||!payload.slots)return false;
     availabilityStatus='ok';
     currentSlots=mergeLocalAndRemoteSlots_(local,payload.slots||{});
     currentDaySummary=payload.daySummary||{};
     showAvailabilityMessage('', 'availability-ok');
+    renderCalendar();
+    return true;
+  }
+
+  try{
+    const livePromise=fetchAvailabilityViaJsonp(program,month);
+    const sheetPromise=fetchAvailabilityFromPublishedSheet(program,month).catch(()=>null);
+    let payload=null;
+
+    // v12.19: no esperar 75 segundos antes de mostrar algo. Si Apps Script tarda,
+    // intentamos usar Cupos públicos como vista rápida y luego seguimos validando al enviar.
+    try{
+      payload=await Promise.race([
+        livePromise,
+        new Promise(resolve=>setTimeout(()=>resolve(null),6000))
+      ]);
+    }catch(e){ payload=null; }
+
+    if(!payload){
+      const sheetPayload=await sheetPromise;
+      if(sheetPayload) payload=sheetPayload;
+    }
+
+    if(!payload){
+      try{ payload=await fetchAvailabilityViaIframe(program,month); }catch(e){ payload=await livePromise; }
+    }
+
+    if(!applyPayload(payload,false)) throw new Error((payload&&payload.message)||'No se recibió disponibilidad válida.');
+
+    // Si lo primero que mostró fue hoja pública, dejamos que Apps Script vivo actualice silenciosamente cuando llegue.
+    livePromise.then(p=>{ if(p&&p.ok&&p.slots) applyPayload(p,true); }).catch(()=>{});
   }catch(err){
     if(loadAvailability._last!==requestStamp)return;
     availabilityStatus='reference';
     currentSlots=local;
     currentDaySummary={};
-    // No mostrar errores técnicos al público. Los horarios base quedan visibles y el envío se valida en Apps Script.
     showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Estamos actualizando la disponibilidad.</strong> Podés elegir un horario; antes de registrar la solicitud el sistema vuelve a validar el cupo.</span></div>','availability-soft');
+    renderCalendar();
   }
-  renderCalendar();
 }
 function mergeLocalAndRemoteSlots_(local,remote){
   const out={};
