@@ -931,3 +931,36 @@ window.selectProgram=selectProgram;window.handleSlotClick=handleSlotClick;window
 <div aria-hidden="true" class="modal-backdrop" id="workshopModal"><div class="modal-card"><button class="ghost modal-close" onclick="closeWorkshopModal()" type="button">Cerrar</button><div id="workshopModalContent"></div></div></div>
 </body>
 </html>
+
+<style>
+/* ===== v12.16 SOLO INDEX: corrección puntual pedida =====
+   - No toca PC.
+   - En celular las imágenes vuelven a cubrir todo el recuadro, sin bordes.
+   - Se elimina la estrella de 4 puntas en Ver ficha y en desplegables. */
+@media(max-width:720px){
+  .program-visual.publico,
+  .program-visual.hielo,
+  .program-visual.mundos,
+  .program-visual.explorando{
+    background-size:cover!important;
+    background-repeat:no-repeat!important;
+    background-color:#fffaf0!important;
+  }
+  .program-visual.publico{background-position:center center!important;}
+  .program-visual.hielo{background-position:center center!important;}
+  .program-visual.mundos{background-position:center center!important;}
+  .program-visual.explorando{background-position:center center!important;}
+}
+.ficha-btn:before{
+  content:'📄 '!important;
+  color:inherit!important;
+  font-weight:900!important;
+  font-size:1em!important;
+  display:inline-block!important;
+  margin-right:3px!important;
+}
+.workshop-activity-details summary:before{
+  content:''!important;
+  display:none!important;
+}
+</style>
