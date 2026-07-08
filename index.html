@@ -362,6 +362,56 @@ body[data-program="escuelas"] .day{min-height:62px!important;padding:4px!importa
   .program-visual.explorando{background-position:center center!important;}
 }
 
+
+
+/* ===== v12.18 FINAL REAL: corrección verificable sin tocar cupos =====
+   1) Imágenes: cubren todo el recuadro en PC y celular, sin bordes.
+   2) Celular: se conserva ancho completo de cada tarjeta; se ajusta la altura para reducir cortes.
+   3) Se elimina cualquier estrella/símbolo agregado por CSS en Ver ficha y fichas desplegables.
+   4) No modifica fetch/JSONP/Apps Script ni la lógica de cupos. */
+.steps{display:none!important;}
+.cards{align-items:stretch!important;}
+.program{width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important;}
+.program-visual.publico,.program-visual.hielo,.program-visual.mundos,.program-visual.explorando{
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+  background-color:transparent!important;
+}
+.program-visual.publico{background-position:center center!important;}
+.program-visual.hielo{background-position:center top!important;}
+.program-visual.mundos{background-position:center center!important;}
+.program-visual.explorando{background-position:center center!important;}
+/* Quita las estrellas que no fueron pedidas. Mantiene los íconos propios de cada actividad. */
+.program .tag::before,.ficha-btn::before,.ficha-btn:before,.workshop-activity-details summary::before,.workshop-activity-details summary:before,.modal-card .detail-block::before,.modal-card .detail-block:before{
+  content:none!important;display:none!important;animation:none!important;background:none!important;border:0!important;
+}
+.modal-card .detail-block{padding-left:12px!important;}
+@media(min-width:721px){
+  .program.featured .program-visual{height:178px!important;}
+  .program-visual{height:148px!important;}
+}
+@media(max-width:720px){
+  .wrap{padding-left:10px!important;padding-right:10px!important;}
+  .cards{grid-template-columns:1fr!important;width:100%!important;gap:14px!important;}
+  .program{width:100%!important;min-width:0!important;border-radius:18px!important;}
+  .program-visual,.program.featured .program-visual{
+    width:100%!important;
+    height:170px!important;
+    min-height:170px!important;
+    aspect-ratio:auto!important;
+    background-size:cover!important;
+    background-repeat:no-repeat!important;
+  }
+  .program-visual.publico{background-position:center center!important;}
+  .program-visual.hielo{background-position:center top!important;}
+  .program-visual.mundos{background-position:center center!important;}
+  .program-visual.explorando{background-position:center center!important;}
+}
+@media(max-width:420px){
+  .program-visual,.program.featured .program-visual{height:162px!important;min-height:162px!important;}
+  .program-visual.hielo{background-position:center top!important;}
+}
+
 </style>
 </head>
 <body data-program="escuelas">
@@ -377,7 +427,7 @@ body[data-program="escuelas"] .day{min-height:62px!important;padding:4px!importa
 <footer>Museo de Ciencias Naturales A. Scasso · Don Bosco 580 · San Nicolás de los Arroyos · visitas@museoscasso.com.ar · info@museoscasso.com.ar</footer>
 </div>
 <script>
-const FRONTEND_VERSION = '12.8-final-publico-estable-spinner-no-tocar-gs';
+const FRONTEND_VERSION = '12.18-final-real-corregido';
 const CUPOS_SPREADSHEET_ID = '12nsmnr5NuoFSZrHUU4oxG5ek8VpFkLR9FauJEGLwaao';
 const CUPOS_PUBLIC_SHEET_NAME = 'Cupos públicos';
 const CUPOS_PUBLIC_GID = '1386957732';
