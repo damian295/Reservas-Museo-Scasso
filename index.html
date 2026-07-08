@@ -283,7 +283,7 @@ body[data-program="escuelas"] .day{min-height:62px!important;padding:4px!importa
 
 
 
-/* ===== v12.14 correcciones controladas ===== */
+/* ===== v12.15 corrección visual controlada ===== */
 .steps{display:none!important}
 .program .tag::before{content:none!important;display:none!important;animation:none!important}
 .program-visual.publico,.program-visual.hielo,.program-visual.mundos,.program-visual.explorando{background-size:contain!important;background-position:center center!important;background-repeat:no-repeat!important;background-color:#fffaf0!important}
@@ -292,6 +292,37 @@ body[data-program="escuelas"] .day{min-height:62px!important;padding:4px!importa
 .hielo-icon,.act-icon{background:transparent!important;border:0!important;color:#7a4b28!important;font-size:1.25rem!important;width:auto!important;height:auto!important;margin-right:5px!important;box-shadow:none!important}
 .workshop-activity-details{padding:7px 8px!important;margin-top:8px!important}.workshop-activity-details summary{padding:8px 9px!important}.workshop-activity-details .choice-grid{padding:6px!important;gap:6px!important}.date-choice{padding:7px 8px!important;border-radius:11px!important}.date-choice .meta{font-size:.76rem!important}.hielo-day-title{font-size:.92rem!important}.hielo-day-title .day-name{font-size:.72rem!important;padding:2px 7px!important}.ficha-btn:before{content:'▣ '!important}.summary.in-form-summary{position:static!important;top:auto!important;margin:10px 0 14px!important;padding:0!important;box-shadow:none!important}.summary.in-form-summary .summary-box{margin:8px 0!important}
 @media(max-width:960px){.summary.in-form-summary{order:98}.toolbar-ticket{order:99}.summary.in-form-summary h2{font-size:1.35rem!important}}
+
+
+
+/* ===== v12.15 corrección visual: PC cubre, celular preserva títulos ===== */
+@media(min-width:721px){
+  .program-visual.publico,.program-visual.hielo,.program-visual.mundos,.program-visual.explorando{
+    background-size:cover!important;
+    background-repeat:no-repeat!important;
+    background-color:#fffaf0!important;
+  }
+  .program-visual.publico{background-position:center center!important}
+  .program-visual.hielo{background-position:center center!important}
+  .program-visual.mundos{background-position:center center!important}
+  .program-visual.explorando{background-position:center center!important}
+}
+@media(max-width:720px){
+  .program-visual.publico,.program-visual.hielo,.program-visual.mundos,.program-visual.explorando{
+    background-size:contain!important;
+    background-position:center center!important;
+    background-repeat:no-repeat!important;
+    background-color:#fffaf0!important;
+  }
+}
+/* Íconos más visibles en botones y fichas de Edad del Hielo, sin fondo verde */
+.ficha-btn:before{content:'✦ '!important;color:#7a4b28!important;font-weight:950!important;font-size:1.12em!important;display:inline-block!important;margin-right:2px!important}
+.workshop-activity-details summary:before{content:'✦ ';color:#7a4b28;font-weight:950;margin-right:4px}
+.modal-card .detail-block{position:relative;padding-left:38px!important}
+.modal-card .detail-block:before{content:'✦';position:absolute;left:12px;top:12px;color:#7a4b28;font-size:1.35rem;font-weight:950;line-height:1}
+.modal-card .detail-block .day-label{background:#7a4b28!important;color:#fff!important}
+.hielo-icon,.act-icon{font-size:1.38rem!important;line-height:1!important;background:transparent!important;border:0!important;color:#7a4b28!important}
+/* Sin alterar lógica de cupos ni llamadas a Apps Script. */
 
 </style>
 </head>
