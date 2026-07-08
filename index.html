@@ -324,6 +324,44 @@ body[data-program="escuelas"] .day{min-height:62px!important;padding:4px!importa
 .hielo-icon,.act-icon{font-size:1.38rem!important;line-height:1!important;background:transparent!important;border:0!important;color:#7a4b28!important}
 /* Sin alterar lógica de cupos ni llamadas a Apps Script. */
 
+
+
+/* ===== v12.17 FINAL CONTROLADA: restauración visual sin tocar cupos =====
+   - PC: las imágenes vuelven a cubrir completo el recuadro, sin bordes.
+   - Celular: cubren completo el recuadro y conservan proporción 16:9 para reducir cortes.
+   - Se elimina el símbolo/estrella agregado en "Ver ficha".
+   - No modifica llamadas de disponibilidad ni lógica de cupos. */
+.program-visual.publico,
+.program-visual.hielo,
+.program-visual.mundos,
+.program-visual.explorando{
+  background-size:cover!important;
+  background-position:center center!important;
+  background-repeat:no-repeat!important;
+  background-color:#fffaf0!important;
+}
+.program.featured .program-visual{height:178px!important;}
+.program-visual{height:148px!important;}
+.program .tag::before{content:none!important;display:none!important;animation:none!important;}
+.ficha-btn::before{content:none!important;display:none!important;}
+@media(max-width:720px){
+  .program{width:100%!important;}
+  .program-visual,
+  .program.featured .program-visual{
+    width:100%!important;
+    height:auto!important;
+    aspect-ratio:16/9!important;
+    min-height:0!important;
+    background-size:cover!important;
+    background-position:center center!important;
+    background-repeat:no-repeat!important;
+  }
+  .program-visual.publico{background-position:center center!important;}
+  .program-visual.hielo{background-position:center center!important;}
+  .program-visual.mundos{background-position:center center!important;}
+  .program-visual.explorando{background-position:center center!important;}
+}
+
 </style>
 </head>
 <body data-program="escuelas">
@@ -932,35 +970,3 @@ window.selectProgram=selectProgram;window.handleSlotClick=handleSlotClick;window
 </body>
 </html>
 
-<style>
-/* ===== v12.16 SOLO INDEX: corrección puntual pedida =====
-   - No toca PC.
-   - En celular las imágenes vuelven a cubrir todo el recuadro, sin bordes.
-   - Se elimina la estrella de 4 puntas en Ver ficha y en desplegables. */
-@media(max-width:720px){
-  .program-visual.publico,
-  .program-visual.hielo,
-  .program-visual.mundos,
-  .program-visual.explorando{
-    background-size:cover!important;
-    background-repeat:no-repeat!important;
-    background-color:#fffaf0!important;
-  }
-  .program-visual.publico{background-position:center center!important;}
-  .program-visual.hielo{background-position:center center!important;}
-  .program-visual.mundos{background-position:center center!important;}
-  .program-visual.explorando{background-position:center center!important;}
-}
-.ficha-btn:before{
-  content:'📄 '!important;
-  color:inherit!important;
-  font-weight:900!important;
-  font-size:1em!important;
-  display:inline-block!important;
-  margin-right:3px!important;
-}
-.workshop-activity-details summary:before{
-  content:''!important;
-  display:none!important;
-}
-</style>
