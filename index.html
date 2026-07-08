@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.24: corrige disponibilidad móvil, evita cupos stale de Cupos públicos para Edad del Hielo y oculta detalle móvil fantasma. -->
+<!-- v12.26: no muestra cupos de referencia; Edad del Hielo sólo muestra cupos si Apps Script confirma cupos reales. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -448,7 +448,7 @@ header.hero{min-height:220px!important;padding:18px!important;gap:12px!important
 <footer>Museo de Ciencias Naturales A. Scasso · Don Bosco 580 · San Nicolás de los Arroyos · visitas@museoscasso.com.ar · info@museoscasso.com.ar</footer>
 </div>
 <script>
-const FRONTEND_VERSION = '12.23-ajustes-administracion';
+const FRONTEND_VERSION = '12.26-cupos-reales-sin-fallback-publico';
 const CUPOS_SPREADSHEET_ID = '12nsmnr5NuoFSZrHUU4oxG5ek8VpFkLR9FauJEGLwaao';
 const CUPOS_PUBLIC_SHEET_NAME = 'Cupos públicos';
 const CUPOS_PUBLIC_GID = '1386957732';
@@ -754,6 +754,7 @@ function fetchAvailabilityViaIframe(program,month){
     }
     window.addEventListener('message',handler);
     const params=new URLSearchParams({action:'availability',program:program,month:month,live:'1',iframe:'1',callbackId:callbackId,v:FRONTEND_VERSION});
+    if(String(program||'').indexOf('hielo')===0) params.set('nocache','1');
     iframe.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();
     document.body.appendChild(iframe);
   });
@@ -771,6 +772,7 @@ function fetchAvailabilityViaJsonp(program,month){
     window[cb]=payload=>{if(done)return;done=true;clearTimeout(timer);cleanup();resolve(payload)};
     script.onerror=()=>{if(done)return;done=true;clearTimeout(timer);cleanup();reject(new Error('No se pudo leer cupos por JSONP'))};
     const params=new URLSearchParams({action:'availability',program:program,month:month,live:'1',callback:cb,v:FRONTEND_VERSION});
+    if(String(program||'').indexOf('hielo')===0) params.set('nocache','1');
     script.src=APPS_SCRIPT_ENDPOINT+'?'+params.toString();
     document.body.appendChild(script);
   });
@@ -902,12 +904,13 @@ async function loadAvailability(){
   livePromise.then(payload=>{ if(payload&&payload.ok&&payload.slots) applyPayload(payload); }).catch(()=>{});
 
   if(!shown){
+    // No publicar cupos de referencia. Si Apps Script no confirma disponibilidad real,
+    // se muestran los horarios base sin números de cupo para no repetir falsos "25 cupos".
     availabilityStatus='reference';
     currentSlots=local;
     currentDaySummary={};
-    showAvailabilityMessage('<strong>Disponibilidad en revisión.</strong> Los horarios quedan visibles; al enviar, el sistema valida cupos reales antes de registrar.','availability-soft');
+    showAvailabilityMessage('', 'availability-soft');
     renderCalendar();
-    setTimeout(()=>{ if(availabilityStatus==='reference') showAvailabilityMessage(''); },7000);
   }
 }
 function mergeLocalAndRemoteSlots_(local,remote){
