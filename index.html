@@ -835,7 +835,7 @@ function backendVersionWarning(payload){
   return '';
 }
 function availabilityLocalCacheKey(program,month){return 'scasso_avail_'+program+'_'+month;}
-function readAvailabilityLocalCache(program,month){try{const raw=localStorage.getItem(availabilityLocalCacheKey(program,month));if(!raw)return null;const obj=JSON.parse(raw);if(!obj||!obj.payload||Date.now()-obj.t>10*60*1000)return null;return obj.payload;}catch(e){return null;}}
+function readAvailabilityLocalCache(program,month){try{const raw=localStorage.getItem(availabilityLocalCacheKey(program,month));if(!raw)return null;const obj=JSON.parse(raw);if(!obj||!obj.payload)return null;const ttl=(String(program||'').indexOf('hielo')===0)?30000:120000;if(Date.now()-obj.t>ttl)return null;return obj.payload;}catch(e){return null;}}
 function writeAvailabilityLocalCache(program,month,payload){try{if(payload&&payload.ok&&payload.slots)localStorage.setItem(availabilityLocalCacheKey(program,month),JSON.stringify({t:Date.now(),payload}));}catch(e){}}
 async function loadAvailability(){
   const local=localSlotsForMonth();
@@ -871,29 +871,29 @@ async function loadAvailability(){
   let shown=false;
   if(cached){ shown=applyPayload(cached) || shown; }
 
-  // v12.24: Cupos públicos puede quedar atrasado si hubo pruebas/limpieza.
-  // Para Edad del Hielo NO se usa como fuente rápida: se espera Apps Script vivo.
-  // Para el resto sirve como vista rápida y el envío revalida contra Apps Script.
+  // v12.25: la consulta viva arranca de inmediato. No se espera a Cupos públicos para recién llamar Apps Script.
+  // Edad del Hielo conserva cupos visibles: usa cache corto de Apps Script/localStorage y luego sobrescribe con cálculo vivo.
+  const livePromise=fetchAvailabilityViaJsonp(program,month).catch(async e=>{
+    try{return await fetchAvailabilityViaIframe(program,month);}catch(err){return null;}
+  });
+
+  // Cupos públicos sólo como vista rápida secundaria en programas no críticos; en Edad del Hielo no reemplaza cupos vivos.
   const usePublishedFast = !(program.indexOf('hielo')===0);
-  if(usePublishedFast){
+  if(usePublishedFast && !shown){
     try{
       const sheetPayload=await Promise.race([
         fetchAvailabilityFromPublishedSheet(program,month),
-        new Promise(resolve=>setTimeout(()=>resolve(null),1200))
+        new Promise(resolve=>setTimeout(()=>resolve(null),900))
       ]);
       if(sheetPayload){shown=applyPayload(sheetPayload) || shown;}
     }catch(e){}
   }
 
-  const livePromise=fetchAvailabilityViaJsonp(program,month).catch(async e=>{
-    try{return await fetchAvailabilityViaIframe(program,month);}catch(err){return null;}
-  });
-
   if(!shown){
     try{
       const livePayload=await Promise.race([
         livePromise,
-        new Promise(resolve=>setTimeout(()=>resolve(null),12000))
+        new Promise(resolve=>setTimeout(()=>resolve(null),8000))
       ]);
       if(livePayload) shown=applyPayload(livePayload);
     }catch(e){}
@@ -905,7 +905,7 @@ async function loadAvailability(){
     availabilityStatus='reference';
     currentSlots=local;
     currentDaySummary={};
-    showAvailabilityMessage('<strong>Disponibilidad preliminar.</strong> Los horarios quedan visibles; el sistema confirma cupos reales antes de registrar la solicitud.','availability-soft');
+    showAvailabilityMessage('<strong>Disponibilidad en revisión.</strong> Los horarios quedan visibles; al enviar, el sistema valida cupos reales antes de registrar.','availability-soft');
     renderCalendar();
     setTimeout(()=>{ if(availabilityStatus==='reference') showAvailabilityMessage(''); },7000);
   }
