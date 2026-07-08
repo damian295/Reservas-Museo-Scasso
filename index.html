@@ -8,9 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.10 AJUSTES FINOS SOBRE CANONICO: conserva la lectura de cupos que funcionó,
-     agrega indicador de carga público, recupera lectura por JSONP + iframe + respaldo,
-     oculta mensajes técnicos y NO toca Apps Script / planilla / calendarios. -->
+<!-- v12.24: corrige disponibilidad móvil, evita cupos stale de Cupos públicos para Edad del Hielo y oculta detalle móvil fantasma. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -870,18 +868,22 @@ async function loadAvailability(){
   }
 
   const cached=readAvailabilityLocalCache(program,month);
-  if(cached){ applyPayload(cached); }
-
-  // v12.23: mostrar rápido desde cache/Cupos públicos si está disponible, y actualizar Apps Script en segundo plano.
-  // El envío de la reserva sigue validando contra Apps Script antes de registrar.
   let shown=false;
-  try{
-    const sheetPayload=await Promise.race([
-      fetchAvailabilityFromPublishedSheet(program,month),
-      new Promise(resolve=>setTimeout(()=>resolve(null),1200))
-    ]);
-    if(sheetPayload){shown=applyPayload(sheetPayload);}
-  }catch(e){}
+  if(cached){ shown=applyPayload(cached) || shown; }
+
+  // v12.24: Cupos públicos puede quedar atrasado si hubo pruebas/limpieza.
+  // Para Edad del Hielo NO se usa como fuente rápida: se espera Apps Script vivo.
+  // Para el resto sirve como vista rápida y el envío revalida contra Apps Script.
+  const usePublishedFast = !(program.indexOf('hielo')===0);
+  if(usePublishedFast){
+    try{
+      const sheetPayload=await Promise.race([
+        fetchAvailabilityFromPublishedSheet(program,month),
+        new Promise(resolve=>setTimeout(()=>resolve(null),1200))
+      ]);
+      if(sheetPayload){shown=applyPayload(sheetPayload) || shown;}
+    }catch(e){}
+  }
 
   const livePromise=fetchAvailabilityViaJsonp(program,month).catch(async e=>{
     try{return await fetchAvailabilityViaIframe(program,month);}catch(err){return null;}
@@ -903,8 +905,9 @@ async function loadAvailability(){
     availabilityStatus='reference';
     currentSlots=local;
     currentDaySummary={};
-    showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Seguimos verificando disponibilidad.</strong> Los horarios quedan visibles y el sistema revalida cupos antes de registrar la solicitud.</span></div>','availability-soft');
+    showAvailabilityMessage('<strong>Disponibilidad preliminar.</strong> Los horarios quedan visibles; el sistema confirma cupos reales antes de registrar la solicitud.','availability-soft');
     renderCalendar();
+    setTimeout(()=>{ if(availabilityStatus==='reference') showAvailabilityMessage(''); },7000);
   }
 }
 function mergeLocalAndRemoteSlots_(local,remote){
@@ -933,14 +936,14 @@ function renderCalendar(){
 }
 function handleSlotClick(date,time){
   if(!isBookableDate(date))return;
-  if(selectedProgram==='hielo'){mobileFocusedDate=date; $('detalles').scrollIntoView({behavior:'smooth',block:'start'}); return;}
+  if(selectedProgram==='hielo'){mobileFocusedDate=null; renderMobileDayDetail(); $('detalles').scrollIntoView({behavior:'smooth',block:'start'}); return;}
   else if(selectedProgram==='mundos'){if(mundosMode==='Días particulares'){toggleInArray(mundosSelected,date);selectedDates=[...mundosSelected];renderSpecialOptions()}}
   else {selectedDate=date; selectedSlot=time; selectedDates=[]; $('datos').scrollIntoView({behavior:'smooth',block:'start'})}
   renderCalendar(); updateSummary();
 }
 function toggleInArray(arr,value){const idx=arr.indexOf(value);if(idx>=0)arr.splice(idx,1);else arr.push(value);arr.sort()}
 function normalizeSlotForRender(slot){if(Array.isArray(slot))return {time:slot[0],available:slot[1]!==false,remaining:slot[2],used:slot[3]};if(slot&&typeof slot==='object')return {time:slot.time||slot.horario||slot.slot||'',available:slot.available!==false,remaining:slot.remaining,used:slot.used};return {time:String(slot||''),available:true,remaining:null,used:null}}
-function renderMobileDayDetail(){const box=$('mobileDayDetail'); if(!box)return; if(!mobileFocusedDate){box.classList.add('hidden');return} const slots=currentSlots[mobileFocusedDate]||[]; box.classList.remove('hidden'); const ds=currentDaySummary[mobileFocusedDate]; const dsHtml=ds?`<div class="day-summary ${Number(ds.openSlots||0)<=0?'full':'ok'}" style="margin-top:6px">${ds.label||''}</div>`:''; box.innerHTML=`<strong>${fmtDate(mobileFocusedDate)}</strong>${dsHtml}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${slots.length?slots.map(raw=>{const s=normalizeSlotForRender(raw);const t=s.time,a=s.available,r=s.remaining;const vr=visibleCapacityForSlot(mobileFocusedDate,t,r);const show=(selectedProgram!=='escuelas'&&vr!==''&&vr!==null&&vr!==undefined&&!(ds&&slots.length===1));const checking=(availabilityStatus==='checking');return `<button type="button" class="slot ${!a?(checking?'closed':'full'):''} ${show?'has-quota':''}" ${!a?'disabled':''} onclick="handleSlotClick('${mobileFocusedDate}','${t}')" data-short="${t}"><span class="slot-time">${a?t:(checking?t:'Completo')}</span>${a&&show?`<span class="quota-badge">${vr} cupos</span>`:''}</button>`}).join(''):'<span class="small">Sin turnos para seleccionar.</span>'}</div>`}
+function renderMobileDayDetail(){const box=$('mobileDayDetail'); if(!box)return; if(selectedProgram==='hielo'||!mobileFocusedDate){box.classList.add('hidden');box.innerHTML='';return} const slots=currentSlots[mobileFocusedDate]||[]; box.classList.remove('hidden'); const ds=currentDaySummary[mobileFocusedDate]; const dsHtml=ds?`<div class="day-summary ${Number(ds.openSlots||0)<=0?'full':'ok'}" style="margin-top:6px">${ds.label||''}</div>`:''; box.innerHTML=`<strong>${fmtDate(mobileFocusedDate)}</strong>${dsHtml}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${slots.length?slots.map(raw=>{const s=normalizeSlotForRender(raw);const t=s.time,a=s.available,r=s.remaining;const vr=visibleCapacityForSlot(mobileFocusedDate,t,r);const show=(selectedProgram!=='escuelas'&&vr!==''&&vr!==null&&vr!==undefined&&!(ds&&slots.length===1));const checking=(availabilityStatus==='checking');return `<button type="button" class="slot ${!a?(checking?'closed':'full'):''} ${show?'has-quota':''}" ${!a?'disabled':''} onclick="handleSlotClick('${mobileFocusedDate}','${t}')" data-short="${t}"><span class="slot-time">${a?t:(checking?t:'Completo')}</span>${a&&show?`<span class="quota-badge">${vr} cupos</span>`:''}</button>`}).join(''):'<span class="small">Sin turnos para seleccionar.</span>'}</div>`}
 function groupCount(){return Math.ceil(Math.max(1,Number(els.people.value||1))/programs[selectedProgram].capacity)}
 function currentSelectionSlots(){
   if(selectedProgram==='hielo'){
