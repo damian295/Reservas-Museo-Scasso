@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.32.4: limpia repetición de descuento, corrige huecos del formulario y conserva JSONP/cupos Hielo. -->
+<!-- v12.32.5: estabiliza cupos Hielo, muestra un solo cupo activo y ajusta Mundos Perdidos familiar. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -498,6 +498,11 @@ body[data-program="hielo"] .slot .quota-badge{display:none!important;}
 .hielo-discount-info{background:#fff3d5;border-left:5px solid #b97822;border-radius:12px;padding:10px 12px;color:#5a3d12;margin:8px 0 12px;font-size:.88rem;line-height:1.34}
 .hielo-discount-info strong{color:#17472e}
 
+
+/* v12.32.5 ajustes: cupo único en calendario Hielo y textos Mundos */
+body[data-program="hielo"] .hielo-calendar-quota{font-size:.7rem!important;min-width:64px}
+.mundos-family-note{font-size:.82rem;color:var(--muted);margin:6px 0 0;line-height:1.3}
+
 </style>
 </head>
 <body data-program="escuelas">
@@ -607,6 +612,11 @@ function countdownText(startDate,endDate){const start=parseDate(startDate);start
 function badgeForProgram(key){if(key==='hielo')return `<span class="countdown-badge">${countdownText('2026-07-27','2026-07-31')}</span>`;if(key==='mundos')return `<span class="countdown-badge">${countdownText('2026-09-26','2026-10-04')}</span>`;return ''}
 function hieloKeys(){return Object.keys(HIELO_WORKSHOPS)}
 function getHieloConfig(key){return HIELO_WORKSHOPS[key||hieloWorkshop]||HIELO_WORKSHOPS.hielo_gigantes}
+function hieloCalendarDisplayKey(){
+  if(hieloWorkshop&&HIELO_WORKSHOPS[hieloWorkshop])return hieloWorkshop;
+  const active=hieloActiveKeys();
+  return active[0]||'hielo_gigantes';
+}
 function ensureHieloState(){hieloKeys().forEach(k=>{if(!hieloState[k])hieloState[k]={participants:0,dates:[]}})}
 function hieloActiveKeys(){ensureHieloState();return hieloKeys().filter(k=>Number(hieloState[k].participants||0)>0 && (hieloState[k].dates||[]).length>0)}
 function hieloTotalParticipants(){ensureHieloState();return hieloKeys().reduce((sum,k)=>sum+(Number(hieloState[k].participants||0)>0 && (hieloState[k].dates||[]).length?Number(hieloState[k].participants||0):0),0)}
@@ -672,7 +682,7 @@ function renderProgramInfo(){
   els.modality.innerHTML=p.modalities.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
   els.groupType.innerHTML=p.groupOptions.map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
   els.groupTypeLabel.textContent=selectedProgram==='escuelas'?'Tipo de institución':'Tipo de visitante o grupo';
-  els.peopleLabel.textContent=selectedProgram==='mundos'?'Entradas / adultos que pagan':(selectedProgram==='hielo'?'¿Cuántos participarán?':'Cantidad de participantes');
+  els.peopleLabel.textContent=selectedProgram==='mundos'?'Entradas / asistentes':(selectedProgram==='hielo'?'¿Cuántos participarán?':'Cantidad de participantes');
   els.submitBtn.disabled=!p.accepting;
   updateServiceCards();
   updateConditionalFields();
@@ -749,11 +759,11 @@ function updateHieloQuotaChips(){
 }
 function hieloCalendarQuotaHtml(date){
   if(!HIELO_DATES.includes(date))return '';
-  const g=getHieloWorkshopRemaining('hielo_gigantes',date);
-  const e=getHieloWorkshopRemaining('hielo_exploradores',date);
-  if(g===null&&e===null)return '<span class="hielo-calendar-quota loading">Cargando cupos</span>';
-  const gTxt=(g===null?'…':g), eTxt=(e===null?'…':e);
-  return '<span class="hielo-calendar-quota">3-6: '+gTxt+' · 7-12: '+eTxt+'</span>';
+  const key=hieloCalendarDisplayKey();
+  const remaining=getHieloWorkshopRemaining(key,date);
+  if(remaining===null)return '<span class="hielo-calendar-quota loading">Cargando cupos</span>';
+  if(Number(remaining)<=0)return '<span class="hielo-calendar-quota loading">Sin cupos</span>';
+  return '<span class="hielo-calendar-quota">'+remaining+' cupos</span>';
 }
 
 function mundosLabel(d){const date=parseDate(d);return `${DAY_NAMES[date.getDay()]} ${shortDate(d)}`}
@@ -779,16 +789,16 @@ function renderSpecialOptions(){
       </div>`;
     }).join('');
     els.special.innerHTML=`<h3>Elegí taller, participantes y fechas</h3><p class="small">Primero indicá cuántos participantes asistirán y después marcá la fecha o fechas del taller.</p><div class="hielo-discount-info"><strong>Descuento progresivo:</strong> 1 día $10.000; 2 días $18.000; 3 días $25.000; 4 días $31.000; 5 días $35.000 por participante. <br><strong>Descuento adicional:</strong> 2 participantes 10%; 3 o más 15%. El sistema calcula automáticamente el total antes de confirmar.</div><div class="hielo-workshops">${blocks}</div><div id="hieloDiscount" class="discount hidden"></div>`;
-    document.querySelectorAll('.hieloQty').forEach(inp=>{inp.oninput=inp.onchange=e=>{const k=e.target.dataset.workshop;hieloState[k].participants=Math.max(0,Number(e.target.value||0));updateSummary();loadAvailability();updateSpecialNotices();};});
+    document.querySelectorAll('.hieloQty').forEach(inp=>{inp.oninput=inp.onchange=e=>{const k=e.target.dataset.workshop;hieloWorkshop=k;hieloState[k].participants=Math.max(0,Number(e.target.value||0));renderCalendar();updateHieloQuotaChips();updateSummary();updateSpecialNotices();};});
     hieloKeys().forEach(k=>{
-      document.querySelectorAll(`input[name="hieloDay_${k}"]`).forEach(ch=>ch.onchange=()=>{hieloState[k].dates=[...document.querySelectorAll(`input[name="hieloDay_${k}"]:checked`)].map(x=>x.value);selectedDates=hieloSelectedDatesAll();loadAvailability();updateSummary();updateSpecialNotices();});
+      document.querySelectorAll(`input[name="hieloDay_${k}"]`).forEach(ch=>ch.onchange=()=>{hieloWorkshop=k;hieloState[k].dates=[...document.querySelectorAll(`input[name="hieloDay_${k}"]:checked`)].map(x=>x.value);selectedDates=hieloSelectedDatesAll();renderCalendar();updateHieloQuotaChips();updateSummary();updateSpecialNotices();});
     });
     document.querySelectorAll('[data-ficha]').forEach(btn=>btn.onclick=()=>openWorkshopModal(getHieloConfig(btn.dataset.ficha).ficha));
     updateSpecialNotices();
   }
   if(selectedProgram==='mundos'){
     els.special.classList.remove('hidden');
-    els.special.innerHTML=`<h3>Elegí modalidad para Mundos Perdidos</h3><div class="choice-grid"><label class="date-choice"><input type="radio" name="mundosMode" value="Pase completo" ${mundosMode==='Pase completo'?'checked':''}><span><strong>Pase completo</strong><span class="meta">Incluye todos los días de las jornadas.</span></span></label><label class="date-choice"><input type="radio" name="mundosMode" value="Días particulares" ${mundosMode==='Días particulares'?'checked':''}><span><strong>Días particulares</strong><span class="meta">Elegí sólo las jornadas puntuales.</span></span></label></div><div class="two"><div><label for="mundosAdults">Entradas / adultos que pagan</label>${numberInput("mundosAdults",mundosAdults,0,80)}</div></div><div id="mundosDays" class="${mundosMode==='Días particulares'?'':'hidden'}"><h3>Días disponibles</h3><div class="choice-grid">${MUNDOS_DATES.map(d=>dateCheckboxHtml('mundosDay',d,mundosSelected.includes(d),mundosLabel(d),mundosMeta(d))).join('')}</div></div><div id="mundosDiscount" class="discount hidden"></div><p class="mundos-price-note">Valores: días de semana $ 3.000; sábados y domingos $ 5.000. Pase completo 26/9 al 4/10: $ 30.000 por persona.</p>`;
+    els.special.innerHTML=`<h3>Elegí modalidad para Mundos Perdidos</h3><div class="choice-grid"><label class="date-choice"><input type="radio" name="mundosMode" value="Pase completo" ${mundosMode==='Pase completo'?'checked':''}><span><strong>Pase completo</strong><span class="meta">Incluye todos los días de las jornadas.</span></span></label><label class="date-choice"><input type="radio" name="mundosMode" value="Días particulares" ${mundosMode==='Días particulares'?'checked':''}><span><strong>Días particulares</strong><span class="meta">Elegí sólo las jornadas puntuales.</span></span></label></div><div class="two"><div><label for="mundosAdults">Entradas / asistentes</label>${numberInput("mundosAdults",mundosAdults,0,80)}</div></div><div id="mundosDays" class="${mundosMode==='Días particulares'?'':'hidden'}"><h3>Días disponibles</h3><div class="choice-grid">${MUNDOS_DATES.map(d=>dateCheckboxHtml('mundosDay',d,mundosSelected.includes(d),mundosLabel(d),mundosMeta(d))).join('')}</div></div><div id="mundosDiscount" class="discount hidden"></div><p class="mundos-price-note">Valores: días de semana $ 3.000; sábados y domingos $ 5.000. Pase completo 26/9 al 4/10: $ 30.000 por persona. Descuento familiar automático: 2 asistentes 10%; 3 o más 15%.</p>`;
     document.querySelectorAll('input[name="mundosMode"]').forEach(r=>r.onchange=e=>{mundosMode=e.target.value;mundosSelected=mundosMode==='Pase completo'?MUNDOS_DATES.filter(d=>isBookableDate(d)):[];selectedDates=[...mundosSelected];renderSpecialOptions();renderCalendar();updateSummary();});
     $('mundosAdults').oninput=$('mundosAdults').onchange=e=>{mundosAdults=Math.max(0,Number(e.target.value||0));els.people.value=mundosAdults;updateSummary();};
     mundosMinors=0;
@@ -811,7 +821,7 @@ function updateSpecialNotices(){
     }
   }
   const m=$('mundosDiscount');
-  if(selectedProgram==='mundos'&&m){m.classList.toggle('hidden',false);m.textContent=mundosMode==='Pase completo'?'Pase completo seleccionado: $ 30.000 por persona.':'Días particulares seleccionados: '+mundosSelected.length+' · semana $ 3.000 / sábado-domingo $ 5.000';}
+  if(selectedProgram==='mundos'&&m){m.classList.add('hidden');m.textContent='';}
 }
 
 function showAvailabilityMessage(text,type='notice'){
@@ -945,31 +955,39 @@ async function loadAvailabilityHielo(){
   availabilityStatus='checking';
   currentSlots=local;
   renderCalendar();
+  updateHieloQuotaChips();
   showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Consultando disponibilidad…</strong> Estamos verificando los turnos disponibles.</span></div>','availability-soft');
   const month=ym(viewDate);
   const requestStamp='hielo|'+month+'|'+Date.now();
   loadAvailabilityHielo._last=requestStamp;
   const keys=['hielo_gigantes','hielo_exploradores'];
   let okAny=false;
-  const fresh={hielo_gigantes:{},hielo_exploradores:{}};
-  await Promise.all(keys.map(async k=>{
+  const fresh=Object.assign({hielo_gigantes:{},hielo_exploradores:{}},hieloAvailabilityByWorkshop||{});
+  for(const k of keys){
     let payload=null;
-    try{payload=await Promise.race([fetchAvailabilityViaJsonp(k,month).catch(async e=>{try{return await fetchAvailabilityViaIframe(k,month)}catch(err){return null}}),new Promise(resolve=>setTimeout(()=>resolve(null),8000))]);}catch(e){payload=null;}
-    if(payload&&payload.ok&&payload.slots){fresh[k]=payload.slots||{};okAny=true;}
-  }));
+    try{
+      payload=await Promise.race([
+        fetchAvailabilityViaJsonp(k,month).catch(async e=>{try{return await fetchAvailabilityViaIframe(k,month)}catch(err){return null}}),
+        new Promise(resolve=>setTimeout(()=>resolve(null),15000))
+      ]);
+    }catch(e){payload=null;}
+    if(loadAvailabilityHielo._last!==requestStamp || selectedProgram!=='hielo' || ym(viewDate)!==month) return;
+    if(payload&&payload.ok&&payload.slots){
+      fresh[k]=payload.slots||{};
+      hieloAvailabilityByWorkshop=Object.assign({},hieloAvailabilityByWorkshop||{},fresh);
+      okAny=true;
+      availabilityStatus='ok';
+      currentSlots=local;
+      renderCalendar();
+      updateHieloQuotaChips();
+    }
+  }
   if(loadAvailabilityHielo._last!==requestStamp || selectedProgram!=='hielo' || ym(viewDate)!==month) return;
   hieloAvailabilityByWorkshop=fresh;
   currentDaySummary={};
   HIELO_DATES.forEach(date=>{
-    const gr=getHieloWorkshopRemaining('hielo_gigantes',date);
-    const ex=getHieloWorkshopRemaining('hielo_exploradores',date);
-    const parts=[];
-    if(gr!==null) parts.push('3-6: '+gr);
-    if(ex!==null) parts.push('7-12: '+ex);
-    if(parts.length){
-      const open=(gr===null||gr>0)||(ex===null||ex>0);
-      currentDaySummary[date]={totalSlots:1,openSlots:open?1:0,closedSlots:open?0:1,placesTotal:(gr||0)+(ex||0),placesAvailable:(Number(gr||0)+Number(ex||0)),label:parts.join(' · ')};
-    }
+    const r=getHieloWorkshopRemaining(hieloCalendarDisplayKey(),date);
+    if(r!==null){currentDaySummary[date]={totalSlots:1,openSlots:Number(r)>0?1:0,closedSlots:Number(r)>0?0:1,placesTotal:Number(r)||0,placesAvailable:Number(r)||0,label:r+' cupos'};}
   });
   availabilityStatus=okAny?'ok':'reference';
   currentSlots=local;
@@ -1112,15 +1130,22 @@ function currentSelectionSlots(){
   return selectedDate&&selectedSlot&&isBookableDate(selectedDate)?[{fecha:selectedDate,horario:selectedSlot}]:[];
 }
 
+function mundosDescuentoParticipantes(q){
+  q=Number(q||0);
+  if(q>=3)return 0.15;
+  if(q>=2)return 0.10;
+  return 0;
+}
 function calcMundosPrice(){
   const prices=programs.mundos.prices;
   const dates=(mundosMode==='Pase completo')?MUNDOS_DATES.filter(d=>isBookableDate(d)):[...mundosSelected];
-  const adults=Number(mundosAdults||0);
-  if(!adults||!dates.length)return 0;
+  const attendees=Number(mundosAdults||0);
+  if(!attendees||!dates.length)return 0;
   const sum=dates.reduce((acc,d)=>{const day=parseDate(d).getDay();return acc+((day===0||day===6)?prices.finde:prices.semana);},0);
   const full=(dates.length===MUNDOS_DATES.filter(d=>isBookableDate(d)).length);
   const perPerson=full?prices.pase:sum;
-  return perPerson*adults;
+  const discount=mundosDescuentoParticipantes(attendees);
+  return Math.round(perPerson*attendees*(1-discount));
 }
 function hieloPrecioPorDias(count){
   const table=programs.hielo.prices.dias||{};
@@ -1145,7 +1170,7 @@ function hieloPriceBreakdown(){
   return {subtotal,total,totalParticipants,totalDays,discount};
 }
 function calcPrice(){const p=programs[selectedProgram];const slots=currentSelectionSlots();if(p.priceMode==='a_confirmar')return 0;if(p.priceMode==='hielo_multi'){return hieloPriceBreakdown().total}if(p.priceMode==='mundos_multi')return calcMundosPrice();const n=Math.max(1,Number(els.people.value||1));const base=p.prices[els.groupType.value]??p.prices.general??0;const mod=selectedModalityObj();return base*n*(mod.multiplier||1)}
-function priceNoteText(count){if(selectedProgram==='hielo')return 'Edad del Hielo: 1 día $10.000; 2 días $18.000; 3 días $25.000; 4 días $31.000; 5 días $35.000 por participante. Descuento adicional: 2 participantes 10%; 3 o más 15%.';if(selectedProgram==='mundos')return 'Valores: días de semana $ 3.000; sábados y domingos $ 5.000. Pase completo 26/9 al 4/10: $ 30.000 por persona.';return 'Importe según modalidad y participantes.'}
+function priceNoteText(count){if(selectedProgram==='hielo')return 'Edad del Hielo: 1 día $10.000; 2 días $18.000; 3 días $25.000; 4 días $31.000; 5 días $35.000 por participante. Descuento adicional: 2 participantes 10%; 3 o más 15%.';if(selectedProgram==='mundos')return 'Valores: días de semana $ 3.000; sábados y domingos $ 5.000. Pase completo 26/9 al 4/10: $ 30.000 por persona. Descuento familiar automático: 2 asistentes 10%; 3 o más 15%.';return 'Importe según modalidad y participantes.'}
 function updateSummary(){const p=programs[selectedProgram], slots=currentSelectionSlots(); let n=Math.max(1,Number(els.people.value||1)); if(selectedProgram==='hielo')n=hieloTotalParticipants(); if(selectedProgram==='mundos'){mundosAdults=Math.max(0,Number(mundosAdults||0));n=mundosAdults} $('sumProgram').textContent=p.title; $('sumModality').textContent=selectedProgram==='hielo'?hieloWorkshopLabel():selectedProgram==='mundos'?mundosMode:(selectedProgram==='escuelas'?els.modality.value:'Reserva'); $('sumPeople').textContent=selectedProgram==='hielo'?hieloParticipantSummary():(selectedProgram==='mundos'?`${mundosAdults} entrada${mundosAdults===1?'':'s'}`:n); $('sumGroups').textContent=selectedProgram==='escuelas'?groupCount():1; const gr=$('sumGroupsRow'); if(gr)gr.style.display=selectedProgram==='escuelas'?'flex':'none'; $('sumDate').innerHTML=slotsToSummaryHtml(slots); $('sumSlot').textContent=slots.length?[...new Set(slots.map(s=>s.horario))].join(' · '):'Sin elegir'; if(p.priceMode==='a_confirmar'||!slots.length){$('sumPrice').textContent='$ A confirmar';$('priceNote').textContent=slots.length?'Esta propuesta todavía no tiene fecha ni valor publicados.':'El importe se calcula después de elegir fecha y horario.'} else {$('sumPrice').textContent=money(calcPrice());$('priceNote').textContent=priceNoteText(slots.length)} if(selectedProgram==='escuelas'&&Number(els.people.value)>p.capacity){els.warning.classList.remove('hidden');els.warning.innerHTML=`El grupo supera los ${p.capacity} alumnos. Recomendamos dividirlo y realizar ${groupCount()} reservas, una por grupo.`} else els.warning.classList.add('hidden'); updateSpecialNotices();}
 function makeReservationCode(){const d=new Date();return `MSC-${backendProgram().toUpperCase().slice(0,4)}-${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}-${Math.random().toString(36).slice(2,7).toUpperCase()}`}
 function paymentReferenceFromCode(code){
