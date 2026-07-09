@@ -503,6 +503,48 @@ body[data-program="hielo"] .slot .quota-badge{display:none!important;}
 body[data-program="hielo"] .hielo-calendar-quota{font-size:.7rem!important;min-width:64px}
 .mundos-family-note{font-size:.82rem;color:var(--muted);margin:6px 0 0;line-height:1.3}
 
+
+/* v12.32.10 ajustes finales Independencia */
+.program{position:relative}
+.program .site-btn{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  z-index:6;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:96px;
+  padding:8px 11px;
+  border-radius:999px;
+  background:#f28b16;
+  color:#fff;
+  font-size:.78rem;
+  font-weight:950;
+  line-height:1;
+  box-shadow:0 7px 16px rgba(122,75,40,.22);
+  cursor:pointer;
+  text-decoration:none;
+}
+.program .site-btn:hover{filter:brightness(.96);transform:translateY(-1px)}
+@media(min-width:721px){.program-visual.mundos{background-position:center 42%!important}}
+@media(max-width:720px){.program-visual.mundos{background-position:center center!important}.program .site-btn{right:12px;bottom:12px;min-width:92px;font-size:.74rem;padding:8px 10px}}
+.mundos-actions{display:flex;justify-content:flex-end;margin-top:10px}
+.mundos-daily-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  background:#f28b16;
+  color:#fff;
+  font-size:.86rem;
+  font-weight:950;
+  text-decoration:none;
+  padding:10px 14px;
+  box-shadow:0 8px 18px rgba(122,75,40,.20);
+}
+.mundos-daily-btn:hover{filter:brightness(.96);transform:translateY(-1px)}
+
 </style>
 </head>
 <body data-program="escuelas">
@@ -626,10 +668,27 @@ function hieloHasMixed(){return hieloActiveKeys().length>1}
 function hieloWorkshopLabel(){const active=hieloActiveKeys();if(active.length>1)return 'Talleres de Edad del Hielo · grupos de 3 a 6 y 7 a 12 años';if(active.length===1){const cfg=getHieloConfig(active[0]);return `${cfg.label} · ${cfg.age}`}return 'Talleres de Edad del Hielo'}
 function hieloParticipantSummary(){const parts=hieloKeys().map(k=>{const st=hieloState[k]||{},cfg=getHieloConfig(k);const q=Number(st.participants||0);return (q>0 && (st.dates||[]).length)?`${q} participante${q===1?'':'s'} · ${cfg.age}`:''}).filter(Boolean);return parts.length?parts.join(' / '):'Sin participantes seleccionados'}
 function backendProgram(){return selectedProgram==='hielo'?hieloBackendProgram():selectedProgram}
+const PROGRAM_SITES={
+  publico:'https://museoscasso.com.ar/',
+  hielo:'https://edad-hielo.museoscasso.com.ar/',
+  mundos:'https://mundos-perdidos.museoscasso.com.ar/',
+  explorando:'https://explorando-tiempo.museoscasso.com.ar/'
+};
 function initCards(){
-  els.cards.innerHTML=Object.entries(programs).map(([key,p])=>`<button class="program ${key===selectedProgram?'active':''} ${p.featured?'featured':''}" type="button" data-program="${key}"><div class="program-visual ${p.visual}">${badgeForProgram(key)}</div><div class="program-body"><span class="tag">${p.tag}</span><h3>${p.title}</h3><p>${p.intro}</p><ul>${p.bullets.map(b=>`<li>${b}</li>`).join('')}</ul><div class="note">${p.note}</div></div></button>`).join('');
+  els.cards.innerHTML=Object.entries(programs).map(([key,p])=>{
+    const siteBtn=PROGRAM_SITES[key]?`<span class="site-btn" data-site="${key}" role="button" aria-label="Ver sitio web de ${p.title}">Ver sitio web</span>`:'';
+    return `<button class="program ${key===selectedProgram?'active':''} ${p.featured?'featured':''}" type="button" data-program="${key}"><div class="program-visual ${p.visual}">${badgeForProgram(key)}</div><div class="program-body"><span class="tag">${p.tag}</span><h3>${p.title}</h3><p>${p.intro}</p><ul>${p.bullets.map(b=>`<li>${b}</li>`).join('')}</ul><div class="note">${p.note}</div>${siteBtn}</div></button>`;
+  }).join('');
   document.querySelectorAll('.program').forEach(btn=>{
     btn.onclick=()=>selectProgram(btn.dataset.program);
+  });
+  document.querySelectorAll('.site-btn').forEach(btn=>{
+    btn.onclick=ev=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      const url=PROGRAM_SITES[btn.dataset.site];
+      if(url) window.open(url,'_blank','noopener');
+    };
   });
 }
 function setPeople(p,g,level){
@@ -663,7 +722,7 @@ function updateServiceCards(){
   if(title) title.textContent=data[0];
   if(text) text.textContent=data[1];
   if(acc) acc.textContent = selectedProgram==='mundos'
-    ? 'Actividad en el SUM: espacio grande, climatizado, con sanitarios y servicios de apoyo.'
+    ? 'Actividad en el SUM: espacio grande, climatizado, con sanitarios y baños inclusivos para personas con discapacidad.'
     : 'El museo está en planta alta, con espacios expositivos en un mismo nivel. Hay ascensor para personas con dificultad para subir escaleras o usuarios de silla de ruedas.';
 }
 function renderProgramInfo(){
@@ -799,7 +858,7 @@ function renderSpecialOptions(){
   }
   if(selectedProgram==='mundos'){
     els.special.classList.remove('hidden');
-    els.special.innerHTML=`<h3>Elegí modalidad para Mundos Perdidos</h3><div class="choice-grid"><label class="date-choice"><input type="radio" name="mundosMode" value="Pase completo" ${mundosMode==='Pase completo'?'checked':''}><span><strong>Pase completo</strong><span class="meta">Incluye todos los días de las jornadas.</span></span></label><label class="date-choice"><input type="radio" name="mundosMode" value="Días particulares" ${mundosMode==='Días particulares'?'checked':''}><span><strong>Días particulares</strong><span class="meta">Elegí sólo las jornadas puntuales.</span></span></label></div><div class="two"><div><label for="mundosAdults">Entradas / asistentes</label>${numberInput("mundosAdults",mundosAdults,0,80)}</div></div><div id="mundosDays" class="${mundosMode==='Días particulares'?'':'hidden'}"><h3>Días disponibles</h3><div class="choice-grid">${MUNDOS_DATES.map(d=>dateCheckboxHtml('mundosDay',d,mundosSelected.includes(d),mundosLabel(d),mundosMeta(d))).join('')}</div></div><p class="mundos-price-note">Valores: días de semana $ 3.000; sábados y domingos $ 5.000. Pase completo 26/9 al 4/10: $ 30.000 por persona. Descuento progresivo por días particulares: 2 días 5%, 3 días 8%, 4 días 10%, 5 o más 12%. Descuento adicional por asistentes: 2 asistentes 10%; 3 o más 15%.</p>`;
+    els.special.innerHTML=`<h3>Elegí modalidad para Mundos Perdidos</h3><div class="choice-grid"><label class="date-choice"><input type="radio" name="mundosMode" value="Pase completo" ${mundosMode==='Pase completo'?'checked':''}><span><strong>Pase completo</strong><span class="meta">Incluye todos los días de las jornadas.</span></span></label><label class="date-choice"><input type="radio" name="mundosMode" value="Días particulares" ${mundosMode==='Días particulares'?'checked':''}><span><strong>Días particulares</strong><span class="meta">Elegí sólo las jornadas puntuales.</span></span></label></div><div class="two"><div><label for="mundosAdults">Entradas / asistentes</label>${numberInput("mundosAdults",mundosAdults,0,80)}</div></div><div id="mundosDays" class="${mundosMode==='Días particulares'?'':'hidden'}"><h3>Días disponibles</h3><div class="choice-grid">${MUNDOS_DATES.map(d=>dateCheckboxHtml('mundosDay',d,mundosSelected.includes(d),mundosLabel(d),mundosMeta(d))).join('')}</div></div><p class="mundos-price-note">Valores: días de semana $ 3.000; sábados y domingos $ 5.000. Pase completo 26/9 al 4/10: $ 30.000 por persona. Descuento progresivo por días particulares: 2 días 5%, 3 días 8%, 4 días 10%, 5 o más 12%. Descuento adicional por asistentes: 2 asistentes 10%; 3 o más 15%. Los precios pueden actualizarse cada 15 días por Administración; reservar con anticipación permite conservar el valor vigente al momento de la pre-reserva.</p><div class="mundos-actions"><a class="mundos-daily-btn" href="https://mundos-perdidos.museoscasso.com.ar/" target="_blank" rel="noopener">Ver actividades diarias de las Jornadas</a></div>`;
     document.querySelectorAll('input[name="mundosMode"]').forEach(r=>r.onchange=e=>{mundosMode=e.target.value;mundosSelected=mundosMode==='Pase completo'?MUNDOS_DATES.filter(d=>isBookableDate(d)):[];selectedDates=[...mundosSelected];renderSpecialOptions();renderCalendar();updateSummary();});
     $('mundosAdults').oninput=$('mundosAdults').onchange=e=>{mundosAdults=Math.max(0,Number(e.target.value||0));els.people.value=mundosAdults;updateSummary();};
     mundosMinors=0;
