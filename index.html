@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.32.9: mantiene cupos visibles mientras actualiza, sin cupos en Mundos, base estable. -->
+<!-- v12.32.11: Base Canónica Independencia; botones discretos y sin total duplicado en Hielo. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -514,21 +514,21 @@ body[data-program="hielo"] .hielo-calendar-quota{font-size:.7rem!important;min-w
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  min-width:96px;
-  padding:8px 11px;
+  min-width:74px;
+  padding:5px 8px;
   border-radius:999px;
-  background:#f28b16;
-  color:#fff;
-  font-size:.78rem;
-  font-weight:950;
+  background:#155e62;
+  color:#fffaf0;
+  font-size:.68rem;
+  font-weight:850;
   line-height:1;
-  box-shadow:0 7px 16px rgba(122,75,40,.22);
+  box-shadow:0 4px 10px rgba(21,94,98,.18);
   cursor:pointer;
   text-decoration:none;
 }
 .program .site-btn:hover{filter:brightness(.96);transform:translateY(-1px)}
 @media(min-width:721px){.program-visual.mundos{background-position:center 42%!important}}
-@media(max-width:720px){.program-visual.mundos{background-position:center center!important}.program .site-btn{right:12px;bottom:12px;min-width:92px;font-size:.74rem;padding:8px 10px}}
+@media(max-width:720px){.program-visual.mundos{background-position:center center!important}.program .site-btn{right:10px;bottom:10px;min-width:70px;font-size:.66rem;padding:5px 8px}}
 .mundos-actions{display:flex;justify-content:flex-end;margin-top:10px}
 .mundos-daily-btn{
   display:inline-flex;
@@ -559,7 +559,7 @@ body[data-program="hielo"] .hielo-calendar-quota{font-size:.7rem!important;min-w
 <footer>Museo de Ciencias Naturales A. Scasso · Don Bosco 580 · San Nicolás de los Arroyos · visitas@museoscasso.com.ar · info@museoscasso.com.ar</footer>
 </div>
 <script>
-const FRONTEND_VERSION = '12.32.7-timeout-hielo';
+const FRONTEND_VERSION = '12.32.11-base-canonica-independencia-ajustes-menores';
 const CUPOS_SPREADSHEET_ID = '12nsmnr5NuoFSZrHUU4oxG5ek8VpFkLR9FauJEGLwaao';
 const CUPOS_PUBLIC_SHEET_NAME = 'Cupos públicos';
 const CUPOS_PUBLIC_GID = '1386957732';
@@ -869,17 +869,7 @@ function hieloSelectedDatesAll(){ensureHieloState();return [...new Set(hieloKeys
 function hieloWorkshopDetailText(){return hieloKeys().map(k=>{const cfg=getHieloConfig(k),st=hieloState[k]||{};const q=Number(st.participants||0),ds=(st.dates||[]);return (q>0&&ds.length)?`${cfg.label} (${cfg.age}): ${q} participante(s), ${ds.map(shortDate).join(', ')}`:''}).filter(Boolean).join(' | ')}
 function updateSpecialNotices(){
   const h=$('hieloDiscount');
-  if(h){
-    h.classList.add('hidden');h.innerHTML='';
-    if(selectedProgram==='hielo'){
-      const b=hieloPriceBreakdown();
-      if(b.totalParticipants){
-        h.classList.remove('hidden');
-        const extra=b.discount?(' Descuento adicional por participantes: '+Math.round(b.discount*100)+'%.'):' Sin descuento adicional por cantidad de participantes.';
-        h.innerHTML='<strong>Total calculado:</strong> '+money(b.total)+'. '+extra+' El sistema recalcula automáticamente antes de confirmar.';
-      }
-    }
-  }
+  if(h){h.classList.add('hidden');h.innerHTML='';}
 }
 
 function showAvailabilityMessage(text,type='notice'){
