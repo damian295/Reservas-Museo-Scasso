@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.32.8: timeout global de cupos a 45s y cupos por turno sin resumen diario engañoso en Público. -->
+<!-- v12.32.9: mantiene cupos visibles mientras actualiza, sin cupos en Mundos, base estable. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -1000,6 +1000,24 @@ async function loadAvailabilityHielo(){
   showAvailabilityMessage(okAny?'':'No se pudieron leer cupos reales de Edad del Hielo. Recargá la página o probá nuevamente.','availability-soft');
 }
 
+
+const availabilityMemory = {};
+function availabilityMemoryKey(program,month){return String(program||'')+'|'+String(month||'');}
+function rememberAvailability(program,month,payload){try{if(payload&&payload.ok&&payload.slots)availabilityMemory[availabilityMemoryKey(program,month)]={t:Date.now(),payload:payload};}catch(e){}}
+function readAvailabilityMemory(program,month){try{const obj=availabilityMemory[availabilityMemoryKey(program,month)];if(!obj||!obj.payload)return null;if(Date.now()-obj.t>600000)return null;return obj.payload;}catch(e){return null;}}
+function keepVisibleAvailabilityWhileUpdating(local,program,month){
+  const saved=readAvailabilityMemory(program,month)||readAvailabilityLocalCache(program,month);
+  if(saved&&saved.ok&&saved.slots){
+    const normalized=normalizeAvailabilityPayloadForProgram(saved,selectedProgram);
+    availabilityStatus='ok';
+    currentSlots=mergeLocalAndRemoteSlots_(local,normalized.slots||{});
+    currentDaySummary=normalized.daySummary||{};
+    renderCalendar();
+    return true;
+  }
+  return false;
+}
+
 async function loadAvailability(){
   const local=localSlotsForMonth();
   updateTodayButton();
@@ -1009,13 +1027,12 @@ async function loadAvailability(){
   if(selectedProgram==='mundos'){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('');return;}
   if(selectedProgram==='hielo'){await loadAvailabilityHielo();return;}
 
-  availabilityStatus='checking';
-  currentSlots=local;
-  renderCalendar();
-  showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Consultando disponibilidad…</strong> Estamos verificando los cupos reales. Puede tardar unos segundos.</span></div>','availability-soft');
-
   const program=backendProgram();
   const month=ym(viewDate);
+  availabilityStatus='checking';
+  const keptVisible=keepVisibleAvailabilityWhileUpdating(local,program,month);
+  if(!keptVisible){currentSlots=local;renderCalendar();}
+  showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Consultando disponibilidad…</strong> Estamos verificando los cupos reales. Puede tardar unos segundos.</span></div>','availability-soft');
   const requestStamp=program+'|'+month+'|'+Date.now();
   loadAvailability._last=requestStamp;
 
@@ -1028,7 +1045,7 @@ async function loadAvailability(){
     currentDaySummary=payload.daySummary||{};
     showAvailabilityMessage('', 'availability-ok');
     renderCalendar();
-    try{writeAvailabilityLocalCache(program,month,payload);}catch(e){}
+    try{writeAvailabilityLocalCache(program,month,payload);rememberAvailability(program,month,payload);}catch(e){}
     return true;
   }
 
@@ -1067,13 +1084,11 @@ async function loadAvailability(){
   livePromise.then(payload=>{ if(payload&&payload.ok&&payload.slots) applyPayload(payload); }).catch(()=>{});
 
   if(!shown){
-    // No publicar cupos de referencia. Si Apps Script no confirma disponibilidad real,
-    // se muestran los horarios base sin números de cupo para no repetir falsos "25 cupos".
+    // No publicar cupos inventados. Si ya había cupos visibles de una lectura anterior,
+    // se conservan hasta que llegue una nueva lectura; si no había, se muestran los horarios base.
     availabilityStatus='reference';
-    currentSlots=local;
-    currentDaySummary={};
+    if(!keptVisible){currentSlots=local;currentDaySummary={};renderCalendar();}
     showAvailabilityMessage('', 'availability-soft');
-    renderCalendar();
   }
 }
 function mergeLocalAndRemoteSlots_(local,remote){
