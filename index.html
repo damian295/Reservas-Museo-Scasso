@@ -1120,7 +1120,7 @@ const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdatin
     }catch(e){}
   }
 
-  if(!shown && !escuelasFastMode){
+  if(!shown){
     try{
       const livePayload=await Promise.race([
         livePromise,
