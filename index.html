@@ -1081,7 +1081,7 @@ async function loadAvailability(){
   availabilityStatus='checking';
 const escuelasFastMode = selectedProgram==='escuelas';
 const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdating(local,program,month);  if(!keptVisible){currentSlots=escuelasFastMode?disableLocalSlots(local):local;renderCalendar();}
-  showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Consultando disponibilidad…</strong> Estamos verificando los cupos reales. Puede tardar unos segundos.</span></div>','availability-soft');
+  showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Verificando disponibilidad real…</strong><br>Estamos consultando los cupos actualizados antes de habilitar la selección. Esto puede tardar unos segundos. No cierres la página.</span></div>','availability-soft');
   const requestStamp=program+'|'+month+'|'+Date.now();
   loadAvailability._last=requestStamp;
 
