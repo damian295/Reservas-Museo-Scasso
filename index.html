@@ -1109,7 +1109,7 @@ const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdatin
   });
 
   // Cupos públicos sólo como vista rápida secundaria en programas no críticos; en Edad del Hielo no reemplaza cupos vivos.
-  const usePublishedFast = !(program.indexOf('hielo')===0);
+  const usePublishedFast = !escuelasFastMode && !(program.indexOf('hielo')===0);
   if(usePublishedFast && !shown){
     try{
       const sheetPayload=await Promise.race([
