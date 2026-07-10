@@ -1079,8 +1079,8 @@ async function loadAvailability(){
   const program=backendProgram();
   const month=ym(viewDate);
   availabilityStatus='checking';
-  const keptVisible=keepVisibleAvailabilityWhileUpdating(local,program,month);
-  if(!keptVisible){currentSlots=local;renderCalendar();}
+const escuelasFastMode = selectedProgram==='escuelas';
+const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdating(local,program,month);  if(!keptVisible){currentSlots=escuelasFastMode?disableLocalSlots(local):local;renderCalendar();}
   showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Consultando disponibilidad…</strong> Estamos verificando los cupos reales. Puede tardar unos segundos.</span></div>','availability-soft');
   const requestStamp=program+'|'+month+'|'+Date.now();
   loadAvailability._last=requestStamp;
@@ -1098,7 +1098,7 @@ async function loadAvailability(){
     return true;
   }
 
-  const cached=readAvailabilityLocalCache(program,month);
+  const cached=escuelasFastMode ? null : readAvailabilityLocalCache(program,month);
   let shown=false;
   if(cached){ shown=applyPayload(cached) || shown; }
 
@@ -1114,13 +1114,13 @@ async function loadAvailability(){
     try{
       const sheetPayload=await Promise.race([
         fetchAvailabilityFromPublishedSheet(program,month),
-        new Promise(resolve=>setTimeout(()=>resolve(null),900))
+        new Promise(resolve=>setTimeout(()=>resolve(null),escuelasFastMode?4000:900))
       ]);
       if(sheetPayload){shown=applyPayload(sheetPayload) || shown;}
     }catch(e){}
   }
 
-  if(!shown){
+  if(!shown && !escuelasFastMode){
     try{
       const livePayload=await Promise.race([
         livePromise,
@@ -1136,8 +1136,8 @@ async function loadAvailability(){
     // No publicar cupos inventados. Si ya había cupos visibles de una lectura anterior,
     // se conservan hasta que llegue una nueva lectura; si no había, se muestran los horarios base.
     availabilityStatus='reference';
-    if(!keptVisible){currentSlots=local;currentDaySummary={};renderCalendar();}
-    showAvailabilityMessage('', 'availability-soft');
+    if(!keptVisible){currentSlots=escuelasFastMode?disableLocalSlots(local):local;currentDaySummary={};renderCalendar();}
+    showAvailabilityMessage(escuelasFastMode?'No se pudo verificar la disponibilidad real. Recargá la página o consultanos por WhatsApp antes de reservar.':'', 'availability-soft');
   }
 }
 function mergeLocalAndRemoteSlots_(local,remote){
