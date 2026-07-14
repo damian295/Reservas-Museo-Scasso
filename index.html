@@ -1080,9 +1080,10 @@ async function loadAvailability(){
   if(selectedProgram==='mundos'){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('');return;}
   if(selectedProgram==='hielo'){await loadAvailabilityHielo();return;}
 
-  const program=backendProgram();
-  const month=ym(viewDate);
-  availabilityStatus='checking';
+const program=backendProgram();
+const month=ym(viewDate);
+const selectedProgramAtRequest=selectedProgram;
+availabilityStatus='checking';
 const escuelasFastMode = selectedProgram==='escuelas';
 const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdating(local,program,month);  if(!keptVisible){currentSlots=escuelasFastMode?disableLocalSlots(local):local;renderCalendar();}
   showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Verificando disponibilidad real…</strong><br>Estamos consultando los cupos actualizados antes de habilitar la selección. Esto puede tardar unos segundos. No cierres la página.</span></div>','availability-soft');
@@ -1090,7 +1091,7 @@ const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdatin
   loadAvailability._last=requestStamp;
 
   function applyPayload(payload){
-    if(loadAvailability._last!==requestStamp)return false;
+    if(loadAvailability._last!==requestStamp || selectedProgram!==selectedProgramAtRequest)return false;
     if(!payload||!payload.ok||!payload.slots)return false;
     payload=normalizeAvailabilityPayloadForProgram(payload,selectedProgram);
     availabilityStatus='ok';
@@ -1135,7 +1136,7 @@ const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdatin
   }
 
   livePromise.then(payload=>{ if(payload&&payload.ok&&payload.slots) applyPayload(payload); }).catch(()=>{});
-
+  if(selectedProgram!==selectedProgramAtRequest)return;
   if(!shown){
     // No publicar cupos inventados. Si ya había cupos visibles de una lectura anterior,
     // se conservan hasta que llegue una nueva lectura; si no había, se muestran los horarios base.
