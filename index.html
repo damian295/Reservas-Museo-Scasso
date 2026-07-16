@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Reservas | Museo de Ciencias Naturales A. Scasso</title>
-<!-- v12.32.11: Base Canónica Independencia; botones discretos y sin total duplicado en Hielo. -->
+<!-- v12.34: Base Canónica Independencia; programa diario dinámico y sin calendario duplicado en Hielo. -->
 <meta content="Reservas de visitas escolares, público general, talleres y actividades del Museo de Ciencias Naturales A. Scasso." name="description"/>
 <style>
     :root{--bg:#efe6d7;--paper:#fffaf0;--paper2:#fffdf8;--ink:#2b261f;--muted:#675c4d;--line:#d8cab4;--brand:#7a4b28;--brand2:#155e62;--ok:#1f7a4f;--warn:#a36200;--bad:#9a3127;--soft:#efe4d0;--focus:#0b6c7a;--shadow:0 18px 40px rgba(54,38,20,.15);--radius:22px}
@@ -547,6 +547,30 @@ body[data-program="hielo"] .hielo-calendar-quota{font-size:.7rem!important;min-w
 .child-conditions{margin-top:10px!important;background:#edf7f5!important;border-color:#bcd9d4!important}
 .child-conditions summary{display:inline-flex!important;width:auto!important;background:#155e62!important;color:#fffaf0!important;border-radius:999px!important;padding:7px 11px!important;font-size:.82rem!important}
 .child-conditions p{margin:9px 0 0!important;line-height:1.35!important}
+/* v12.34: programa diario dinámico y visible para Edad del Hielo */
+.hielo-selector-note{margin:4px 0 12px;color:var(--muted)}
+.hielo-workshop-picker{margin-bottom:14px!important}
+.hielo-workshop-picker .workshop-card{min-height:0!important;display:flex!important;align-items:flex-start!important;gap:10px!important}
+.hielo-workshop-picker .workshop-card input{flex:none;margin-top:5px!important}
+.hielo-workshop-picker .workshop-card.active{background:#eaf8ef!important;border-color:var(--brand2)!important}
+.hielo-selected-panel{border:2px solid #b8d9d5;border-radius:18px;background:#f3fbf8;padding:14px;margin-top:10px}
+.hielo-selected-heading{margin:0 0 10px;color:#0e646a;font-size:1rem;font-weight:950}
+.hielo-no-selection{border:1.5px dashed #cdbda7;border-radius:16px;background:#fffaf0;padding:14px;color:#5a4937}
+.hielo-program-list{display:grid;grid-template-columns:1fr;gap:9px;margin-top:12px}
+.hielo-program-day{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;gap:11px!important;align-items:flex-start!important;padding:12px 13px!important;border:1.5px solid #d8cab4!important;background:#fffdf8!important;border-radius:14px!important;cursor:pointer}
+.hielo-program-day:hover{border-color:#7a4b28!important;background:#fff8e8!important}
+.hielo-program-day:has(input:checked){border-color:#155e62!important;background:#edf8f5!important;box-shadow:0 0 0 3px rgba(21,94,98,.10)}
+.hielo-program-day input{width:auto!important;margin:5px 0 0!important}
+.hielo-program-day-content{display:block;min-width:0}
+.hielo-program-date{display:inline-flex;background:#7a4b28;color:#fff;border-radius:999px;padding:3px 9px;font-size:.76rem;font-weight:950;margin-bottom:6px}
+.hielo-program-title{display:block;color:#3a2416;font-size:1rem;line-height:1.2;margin-bottom:5px}
+.hielo-program-description{display:block;color:#675c4d;font-size:.86rem;line-height:1.35;margin-bottom:7px}
+.hielo-selected-heading{font-family:Georgia,serif!important;font-size:1.25rem!important;color:#3a2416!important}
+.hielo-workshop-switch-note{margin:8px 0 0;color:#155e62;font-size:.82rem;font-weight:800}
+.hielo-summary-chip{display:flex!important;flex-direction:column;align-items:flex-start!important;gap:2px;border-radius:12px!important}
+.hielo-summary-chip small{font-weight:700;color:#4e665f;line-height:1.2;text-align:left}
+body[data-program="hielo"] #fecha{display:none!important}
+@media(max-width:760px){.hielo-workshop-picker{grid-template-columns:1fr!important}.hielo-selected-panel{padding:11px}.hielo-program-day{padding:10px!important}.hielo-program-title{font-size:.94rem}.hielo-program-description{font-size:.81rem}}
 </style>
 </head>
 <body data-program="escuelas">
@@ -563,7 +587,7 @@ body[data-program="hielo"] .hielo-calendar-quota{font-size:.7rem!important;min-w
 <footer>Museo de Ciencias Naturales A. Scasso · Don Bosco 580 · San Nicolás de los Arroyos · visitas@museoscasso.com.ar · info@museoscasso.com.ar</footer>
 </div>
 <script>
-const FRONTEND_VERSION = '12.32.11-base-canonica-independencia-ajustes-menores';
+const FRONTEND_VERSION = '12.34-programa-diario-dinamico';
 const CUPOS_SPREADSHEET_ID = '12nsmnr5NuoFSZrHUU4oxG5ek8VpFkLR9FauJEGLwaao';
 const CUPOS_PUBLIC_SHEET_NAME = 'Cupos públicos';
 const CUPOS_PUBLIC_GID = '1386957732';
@@ -641,7 +665,7 @@ const HIELO_WORKSHOPS = {
   }
 };
 let selectedProgram='escuelas', viewDate=new Date(programs.escuelas.startMonth), selectedDate=null, selectedSlot=null, selectedDates=[], currentSlots={}, currentDaySummary={}, mobileFocusedDate=null, availabilityStatus='checking', hieloAvailabilityByWorkshop={hielo_gigantes:{},hielo_exploradores:{}};
-let hieloWorkshop='hielo_gigantes', hieloSelected=[], hieloState={
+let hieloWorkshop='', hieloSelected=[], hieloState={
   hielo_gigantes:{participants:0,dates:[]},
   hielo_exploradores:{participants:0,dates:[]}
 }, mundosMode='Pase completo', mundosSelected=[...MUNDOS_DATES], mundosAdults=1, mundosMinors=0, lastTicketData=null;
@@ -654,7 +678,8 @@ function isPast(s){const d=parseDate(s);d.setHours(0,0,0,0);return d<today}
 function fmtDate(s){if(!s)return '';const d=parseDate(s);return `${DAY_NAMES[d.getDay()]} ${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`}
 function shortDate(s){const d=parseDate(s);return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`}
 function slotsToText(slots){if(!slots.length)return 'Sin elegir';return slots.map(x=> x.horario==='Pase'?fmtDate(x.fecha):`${fmtDate(x.fecha)} · ${x.horario}`).join(' | ')}
-function slotsToSummaryHtml(slots){if(!slots.length)return 'Sin elegir';return `<span class="date-chips">${slots.map(x=>`<span class="date-chip">${x.horario==='Pase'?fmtDate(x.fecha):fmtDate(x.fecha)+' · '+x.horario}</span>`).join('')}</span>`}
+function hieloShortActivityTitle(slot){const raw=String((slot&&slot.titulo)||'').trim();const parts=raw.split(' · ');return parts.length>1?parts.slice(1).join(' · '):raw}
+function slotsToSummaryHtml(slots){if(!slots.length)return 'Sin elegir';return `<span class="date-chips">${slots.map(x=>selectedProgram==='hielo'?`<span class="date-chip hielo-summary-chip"><span>${fmtDate(x.fecha)} · ${x.horario}</span><small>${hieloShortActivityTitle(x)}</small></span>`:`<span class="date-chip">${x.horario==='Pase'?fmtDate(x.fecha):fmtDate(x.fecha)+' · '+x.horario}</span>`).join('')}</span>`}
 function countdownText(startDate,endDate){const start=parseDate(startDate);start.setHours(0,0,0,0);const end=endDate?parseDate(endDate):start;end.setHours(23,59,59,999);const diff=Math.ceil((start-today)/(24*60*60*1000));if(diff>1)return `<span>Faltan</span><b>${diff}</b><small>días</small>`;if(diff===1)return '<span>Falta</span><b>1</b><small>día</small>';if(diff===0)return '<span>Comienza</span><small>hoy</small>';if(today<=end)return '<span>En</span><small>curso</small>';return '<span>Finalizado</span>'}
 function badgeForProgram(key){if(key==='hielo')return `<span class="countdown-badge">${countdownText('2026-07-27','2026-07-31')}</span>`;if(key==='mundos')return `<span class="countdown-badge">${countdownText('2026-09-26','2026-10-04')}</span>`;return ''}
 function hieloKeys(){return Object.keys(HIELO_WORKSHOPS)}
@@ -662,14 +687,14 @@ function getHieloConfig(key){return HIELO_WORKSHOPS[key||hieloWorkshop]||HIELO_W
 function hieloCalendarDisplayKey(){
   if(hieloWorkshop&&HIELO_WORKSHOPS[hieloWorkshop])return hieloWorkshop;
   const active=hieloActiveKeys();
-  return active[0]||'hielo_gigantes';
+  return active[0]||'';
 }
 function ensureHieloState(){hieloKeys().forEach(k=>{if(!hieloState[k])hieloState[k]={participants:0,dates:[]}})}
 function hieloActiveKeys(){ensureHieloState();return hieloKeys().filter(k=>Number(hieloState[k].participants||0)>0 && (hieloState[k].dates||[]).length>0)}
 function hieloTotalParticipants(){ensureHieloState();return hieloKeys().reduce((sum,k)=>sum+(Number(hieloState[k].participants||0)>0 && (hieloState[k].dates||[]).length?Number(hieloState[k].participants||0):0),0)}
 function hieloBackendProgram(){const active=hieloActiveKeys();return active[0]||'hielo_gigantes'}
 function hieloHasMixed(){return hieloActiveKeys().length>1}
-function hieloWorkshopLabel(){const active=hieloActiveKeys();if(active.length>1)return 'Talleres de Edad del Hielo · grupos de 3 a 6 y 7 a 12 años';if(active.length===1){const cfg=getHieloConfig(active[0]);return `${cfg.label} · ${cfg.age}`}return 'Talleres de Edad del Hielo'}
+function hieloWorkshopLabel(){const active=hieloActiveKeys();if(active.length>1)return 'Talleres de Edad del Hielo · grupos de 3 a 6 y 7 a 12 años';if(active.length===1){const cfg=getHieloConfig(active[0]);return `${cfg.label} · ${cfg.age}`}if(hieloWorkshop&&HIELO_WORKSHOPS[hieloWorkshop]){const cfg=getHieloConfig(hieloWorkshop);return `${cfg.label} · ${cfg.age}`}return 'Talleres de Edad del Hielo'}
 function hieloParticipantSummary(){const parts=hieloKeys().map(k=>{const st=hieloState[k]||{},cfg=getHieloConfig(k);const q=Number(st.participants||0);return (q>0 && (st.dates||[]).length)?`${q} participante${q===1?'':'s'} · ${cfg.age}`:''}).filter(Boolean);return parts.length?parts.join(' / '):'Sin participantes seleccionados'}
 function backendProgram(){return selectedProgram==='hielo'?hieloBackendProgram():selectedProgram}
 const PROGRAM_SITES={
@@ -708,7 +733,7 @@ function selectProgram(key){
   document.body.dataset.program=key;viewDate=new Date(programs[key].startMonth);selectedDate=null;selectedSlot=null;selectedDates=[];mobileFocusedDate=null;
   if(key==='escuelas') setPeople(25,2,'Inicial');
   if(key==='publico') setPeople(2,0,'Familia / público general');
-  if(key==='hielo'){ setPeople(0,0,'Inicial'); hieloWorkshop='hielo_gigantes'; hieloSelected=[]; hieloState={hielo_gigantes:{participants:0,dates:[]},hielo_exploradores:{participants:0,dates:[]}}; }
+  if(key==='hielo'){ setPeople(0,0,'Inicial'); hieloWorkshop=''; hieloSelected=[]; hieloState={hielo_gigantes:{participants:0,dates:[]},hielo_exploradores:{participants:0,dates:[]}}; }
   if(key==='mundos'){ setPeople(1,0,'Familia / público general'); mundosMode='Pase completo'; mundosSelected=MUNDOS_DATES.filter(d=>isBookableDate(d)); selectedDates=[...mundosSelected]; }
   if(key==='explorando') setPeople(1,0,'Otro');
   initCards();renderProgramInfo();loadAvailability();updateSummary();placeSummaryForViewport();$('detalles').scrollIntoView({behavior:'smooth',block:'start'});
@@ -803,7 +828,8 @@ function dateChoiceLabelForHielo(item, idx, key){
   const cfg=getHieloConfig(key),capacity=(cfg.capacity||programs.hielo.capacity);
   if(!cfg.multi)return `<strong class="enc-title">${fmtDate(item.fecha)}</strong><span class="meta meta-time">15:00 a 16:00 · 60 minutos · hasta ${capacity} cupos</span>`;
   const icon=`<span class="act-icon" aria-hidden="true">${item.icon||'◆'}</span>`;
-  return `<strong class="enc-title">${icon}${item.titulo}</strong><span class="meta meta-date">${fmtDate(item.fecha)}</span><span class="meta meta-time">15:00 a 16:00 · 60 minutos · hasta ${capacity} cupos</span><span class="meta meta-desc">${item.detalle}</span>`
+  const parts=String(item.titulo||'').split(' · '), activityTitle=parts.length>1?parts.slice(1).join(' · '):String(item.titulo||'');
+  return `<span class="hielo-program-date">${fmtDate(item.fecha)}</span><strong class="hielo-program-title">${icon}${activityTitle}</strong><span class="hielo-program-description">${item.detalle}</span><span class="meta meta-time">15:00 a 16:00 · 60 minutos · hasta ${capacity} cupos</span>`
 }
 function getHieloWorkshopRemaining(key,date){const src=(hieloAvailabilityByWorkshop&&hieloAvailabilityByWorkshop[key])?hieloAvailabilityByWorkshop[key]:{};const slots=src&&src[date]?src[date]:[];if(!slots||!slots.length)return null;const first=normalizeSlotForRender(slots[0]);const remaining=first.remaining;return (remaining!==null&&remaining!==undefined&&remaining!==''&&Number.isFinite(Number(remaining)))?Math.max(0,Number(remaining)):null}
 function hieloQuotaHtml(key,date){
@@ -824,6 +850,7 @@ function updateHieloQuotaChips(){
 function hieloCalendarQuotaHtml(date){
   if(!HIELO_DATES.includes(date))return '';
   const key=hieloCalendarDisplayKey();
+  if(!key)return '';
   const remaining=getHieloWorkshopRemaining(key,date);
   if(remaining===null)return '<span class="hielo-calendar-quota loading">Cargando cupos</span>';
   if(Number(remaining)<=0)return '<span class="hielo-calendar-quota loading">Sin cupos</span>';
@@ -840,23 +867,33 @@ function renderSpecialOptions(){
   if(selectedProgram==='hielo'){
     ensureHieloState();
     els.special.classList.remove('hidden');
-    const blocks=hieloKeys().map(key=>{
-      const cfg=getHieloConfig(key), st=hieloState[key]||{participants:0,dates:[]};
-      const datesHtml=cfg.dates.map((item,i)=>`<label class="date-choice ${i===0?'hielo-opening':''}"><input type="checkbox" name="hieloDay_${key}" value="${item.fecha}" ${(st.dates||[]).includes(item.fecha)?'checked':''} ${!isBookableDate(item.fecha)?'disabled':''}><span>${dateChoiceLabelForHielo(item,i,key)}${hieloQuotaHtml(key,item.fecha)}</span></label>`).join('');
-      return `<div class="hielo-workshop-block" data-workshop="${key}">
-        <div class="hielo-workshop-head"><div><h4>${cfg.label}</h4><span class="age-pill">${cfg.age}</span><p class="hielo-workshop-intro"><strong>Talleristas:</strong> ${cfg.talleristas||'A confirmar'}.</p><p class="hielo-workshop-intro">${cfg.intro}</p>${!cfg.multi?'<p class="small hielo-repeat-note">Es el mismo taller en todas las fechas. Elegí sólo el día o los días a los que quieran asistir.</p>':''}</div><button class="ghost ficha-btn" type="button" data-ficha="${key}">▣ Ver ficha</button></div>
-        <div class="hielo-qty-row"><div><label class="hielo-step-label" for="qty_${key}">¿Cuántos participarán?</label>${numberInput(`qty_${key}`,Number(st.participants||0),0,cfg.capacity,`class="hieloQty" data-workshop="${key}"`)}</div><p class="small">Ingresá la cantidad de participantes para este taller y luego marcá una o más fechas.</p></div>
-        <details class="workshop-activity-details">
-          <summary>Seleccioná la fecha <span class="discount-note-inline">Descuento progresivo</span></summary>
-          <div class="choice-grid">${datesHtml}</div>
-        </details>
-      </div>`;
+    const pickerHtml=hieloKeys().map(key=>{
+      const cfg=getHieloConfig(key), active=hieloWorkshop===key;
+      return `<label class="workshop-card ${active?'active':''}" data-hielo-picker="${key}"><input type="radio" name="hieloWorkshopChoice" value="${key}" ${active?'checked':''}><span><span class="workshop-title">${cfg.label}</span><span class="age-pill">${cfg.age}</span><span class="workshop-meta">${cfg.intro}</span></span></label>`;
     }).join('');
-    els.special.innerHTML=`<h3>Elegí taller, participantes y fechas</h3><p class="small">Primero indicá cuántos participantes asistirán y después marcá la fecha o fechas del taller.</p><div class="hielo-discount-info"><strong>Descuento progresivo:</strong> 1 día $10.000; 2 días $18.000; 3 días $25.000; 4 días $31.000; 5 días $35.000 por participante. <br><strong>Descuento adicional:</strong> 2 participantes 10%; 3 o más 15%. El sistema calcula automáticamente el total antes de confirmar.</div><div class="hielo-workshops">${blocks}</div><details class="workshop-activity-details child-conditions"><summary>Condiciones para talleres infantiles</summary><p class="small">Los talleres están destinados a niños y niñas inscriptos y se desarrollan dentro del Museo de Ciencias Naturales A. Scasso, dependiente del Colegio Don Bosco, bajo coordinación de talleristas y personal del Museo. Para favorecer la dinámica de trabajo, los adultos responsables no ingresan al espacio del taller, salvo situaciones particulares acordadas con la organización. Durante la actividad podrán esperar en el patio del Colegio o en la plaza ubicada frente al establecimiento, permaneciendo localizables por teléfono hasta el retiro del participante. Antes del ingreso se verificará en planilla la reserva, los datos del niño/a y el teléfono del adulto responsable.</p></details><div id="hieloDiscount" class="discount hidden"></div>`;
-    document.querySelectorAll('.hieloQty').forEach(inp=>{inp.oninput=inp.onchange=e=>{const k=e.target.dataset.workshop;hieloWorkshop=k;hieloState[k].participants=Math.max(0,Number(e.target.value||0));renderCalendar();updateHieloQuotaChips();updateSummary();updateSpecialNotices();};});
-    hieloKeys().forEach(k=>{
-      document.querySelectorAll(`input[name="hieloDay_${k}"]`).forEach(ch=>ch.onchange=()=>{hieloWorkshop=k;hieloState[k].dates=[...document.querySelectorAll(`input[name="hieloDay_${k}"]:checked`)].map(x=>x.value);selectedDates=hieloSelectedDatesAll();renderCalendar();updateHieloQuotaChips();updateSummary();updateSpecialNotices();});
+    let selectedHtml='<div class="hielo-no-selection"><strong>Elegí uno de los dos talleres.</strong><br>Al seleccionarlo aparecerán aquí sus actividades correspondientes a cada día.</div>';
+    if(hieloWorkshop&&HIELO_WORKSHOPS[hieloWorkshop]){
+      const key=hieloWorkshop, cfg=getHieloConfig(key), st=hieloState[key]||{participants:0,dates:[]};
+      const datesHtml=cfg.dates.map((item,i)=>`<label class="hielo-program-day ${i===0?'hielo-opening':''}"><input type="checkbox" name="hieloDay_${key}" value="${item.fecha}" ${(st.dates||[]).includes(item.fecha)?'checked':''} ${!isBookableDate(item.fecha)?'disabled':''}><span class="hielo-program-day-content">${dateChoiceLabelForHielo(item,i,key)}${hieloQuotaHtml(key,item.fecha)}</span></label>`).join('');
+      selectedHtml=`<div class="hielo-selected-panel"><p class="hielo-selected-heading">2. Programa diario de ${cfg.label}</p><div class="hielo-workshop-block" data-workshop="${key}">
+        <div class="hielo-workshop-head"><div><span class="age-pill">${cfg.age}</span><p class="hielo-workshop-intro"><strong>Talleristas:</strong> ${cfg.talleristas||'A confirmar'}.</p></div><button class="ghost ficha-btn" type="button" data-ficha="${key}">Ver ficha completa</button></div>
+        <div class="hielo-qty-row"><div><label class="hielo-step-label" for="qty_${key}">Cantidad de participantes</label>${numberInput(`qty_${key}`,Number(st.participants||0),0,cfg.capacity,`class="hieloQty" data-workshop="${key}"`)}</div><p class="small">Marcá debajo el día o los días deseados. Cada tarjeta corresponde a una actividad diferente.</p></div>
+        <div class="hielo-program-list">${datesHtml}</div>
+        <p class="hielo-workshop-switch-note">Si cambiás el taller de arriba, este programa diario se reemplaza automáticamente.</p>
+      </div></div>`;
+    }
+    els.special.innerHTML=`<h3>Elegí el taller según la edad</h3><p class="hielo-selector-note">Las actividades que aparecen debajo corresponden únicamente al taller seleccionado.</p><div class="workshop-choice-grid compact hielo-workshop-picker">${pickerHtml}</div>${selectedHtml}<div class="hielo-discount-info"><strong>Descuento progresivo:</strong> 1 día $10.000; 2 días $18.000; 3 días $25.000; 4 días $31.000; 5 días $35.000 por participante. <br><strong>Descuento adicional:</strong> 2 participantes 10%; 3 o más 15%. El sistema calcula automáticamente el total antes de confirmar.</div><details class="workshop-activity-details child-conditions"><summary>Condiciones para talleres infantiles</summary><p class="small">Los talleres están destinados a niños y niñas inscriptos y se desarrollan dentro del Museo de Ciencias Naturales A. Scasso, dependiente del Colegio Don Bosco, bajo coordinación de talleristas y personal del Museo. Para favorecer la dinámica de trabajo, los adultos responsables no ingresan al espacio del taller, salvo situaciones particulares acordadas con la organización. Durante la actividad podrán esperar en el patio del Colegio o en la plaza ubicada frente al establecimiento, permaneciendo localizables por teléfono hasta el retiro del participante. Antes del ingreso se verificará en planilla la reserva, los datos del niño/a y el teléfono del adulto responsable.</p></details><div id="hieloDiscount" class="discount hidden"></div>`;
+    document.querySelectorAll('input[name="hieloWorkshopChoice"]').forEach(radio=>radio.onchange=e=>{
+      const next=e.target.value;
+      if(!HIELO_WORKSHOPS[next])return;
+      hieloKeys().filter(k=>k!==next).forEach(k=>{hieloState[k]={participants:0,dates:[]};});
+      hieloWorkshop=next;selectedDates=[];
+      renderSpecialOptions();renderCalendar();updateHieloQuotaChips();updateSummary();updateSpecialNotices();
     });
+    document.querySelectorAll('.hieloQty').forEach(inp=>{inp.oninput=inp.onchange=e=>{const k=e.target.dataset.workshop;hieloState[k].participants=Math.max(0,Number(e.target.value||0));renderCalendar();updateHieloQuotaChips();updateSummary();updateSpecialNotices();};});
+    if(hieloWorkshop){
+      document.querySelectorAll(`input[name="hieloDay_${hieloWorkshop}"]`).forEach(ch=>ch.onchange=()=>{const k=hieloWorkshop;hieloState[k].dates=[...document.querySelectorAll(`input[name="hieloDay_${k}"]:checked`)].map(x=>x.value);selectedDates=hieloSelectedDatesAll();renderCalendar();updateHieloQuotaChips();updateSummary();updateSpecialNotices();});
+    }
     document.querySelectorAll('[data-ficha]').forEach(btn=>btn.onclick=()=>openWorkshopModal(getHieloConfig(btn.dataset.ficha).ficha));
     updateSpecialNotices();
   }
@@ -1399,8 +1436,8 @@ async function submitReservationRobust(data){
 /* Administración eliminada del HTML público en v8.5.
    La web solo muestra propuestas, cupos y permite reservar.
    Confirmar pago, cancelar, asignar guías y generar tickets se hace desde la planilla. */
-function validateBeforeSubmit(){const slots=currentSelectionSlots();if(!programs[selectedProgram].accepting)return 'Esta propuesta todavía no tiene fechas de reserva habilitadas.';if(selectedProgram==='hielo'){ensureHieloState();if(hieloHasMixed())return 'Para reservar ambos grupos de edad, realizá una reserva por cada taller. Primero Gigantes del Hielo y luego Exploradores de la Edad del Hielo.';for(const k of hieloKeys()){const st=hieloState[k]||{},q=Number(st.participants||0),ds=st.dates||[];if(q>0&&!ds.length)return 'Elegí al menos una fecha para '+getHieloConfig(k).label+'.';if(q===0&&ds.length)return 'Indicá cantidad de participantes para '+getHieloConfig(k).label+' o limpiá ese taller.';}if(hieloTotalParticipants()<=0)return 'Indicá participantes en al menos uno de los talleres de Edad del Hielo.';}if(!slots.length)return programRequiresAdvance(selectedProgram)?'Falta elegir al menos una fecha u horario disponible. Esta propuesta requiere al menos 7 días de anticipación.':'Falta elegir al menos una fecha u horario disponible.';if(slots.some(s=>!isBookableDate(s.fecha)))return 'Esta propuesta requiere al menos 7 días de anticipación.';const emailValue=$('email').value.trim();if($('email').required&&!emailValue)return 'Falta el correo electrónico.';if(emailValue&&$('email2')&&$('email2').required&&emailValue!==$('email2').value.trim())return 'Los correos no coinciden. Escribilos manualmente para evitar errores.';if(selectedProgram==='mundos'&&Number(mundosAdults||0)<=0)return 'Indicá al menos un adulto que paga para Mundos Perdidos.';return ''}
-function resetForNewReservation(){['responsible','phone','email','email2','school','address','course','topics','accessibility'].forEach(id=>$(id).value='');$('accept').checked=false;selectedDate=null;selectedSlot=null;selectedDates=[];els.formMessage.className='notice hidden';els.formMessage.textContent='';els.ticketBox.classList.add('hidden');els.ticketBox.innerHTML='';els.newBtn.classList.add('hidden');lastTicketData=null;if(els.submitBtn){els.submitBtn.disabled=false;els.submitBtn.classList.remove('sent','sending');els.submitBtn.textContent='Enviar solicitud de reserva';}const db=$('downloadCurrentTicket'),pb=$('printCurrentTicket');if(db){db.disabled=true;db.classList.add('hidden')}if(pb){pb.disabled=true;pb.classList.add('hidden')}if(selectedProgram==='hielo'){hieloSelected=[];hieloState={hielo_gigantes:{participants:0,dates:[]},hielo_exploradores:{participants:0,dates:[]}};}if(selectedProgram==='mundos'&&mundosMode==='Días particulares')mundosSelected=[];renderSpecialOptions();renderCalendar();updateSummary();$('propuesta').scrollIntoView({behavior:'smooth'})}
+function validateBeforeSubmit(){const slots=currentSelectionSlots();if(!programs[selectedProgram].accepting)return 'Esta propuesta todavía no tiene fechas de reserva habilitadas.';if(selectedProgram==='hielo'){ensureHieloState();if(!hieloWorkshop||!HIELO_WORKSHOPS[hieloWorkshop])return 'Elegí primero uno de los dos talleres de Edad del Hielo.';if(hieloHasMixed())return 'Para reservar ambos grupos de edad, realizá una reserva por cada taller. Primero Gigantes del Hielo y luego Exploradores de la Edad del Hielo.';for(const k of hieloKeys()){const st=hieloState[k]||{},q=Number(st.participants||0),ds=st.dates||[];if(q>0&&!ds.length)return 'Elegí al menos una fecha para '+getHieloConfig(k).label+'.';if(q===0&&ds.length)return 'Indicá cantidad de participantes para '+getHieloConfig(k).label+' o limpiá ese taller.';}if(hieloTotalParticipants()<=0)return 'Indicá participantes para el taller seleccionado.';}if(!slots.length)return programRequiresAdvance(selectedProgram)?'Falta elegir al menos una fecha u horario disponible. Esta propuesta requiere al menos 7 días de anticipación.':'Falta elegir al menos una fecha u horario disponible.';if(slots.some(s=>!isBookableDate(s.fecha)))return 'Esta propuesta requiere al menos 7 días de anticipación.';const emailValue=$('email').value.trim();if($('email').required&&!emailValue)return 'Falta el correo electrónico.';if(emailValue&&$('email2')&&$('email2').required&&emailValue!==$('email2').value.trim())return 'Los correos no coinciden. Escribilos manualmente para evitar errores.';if(selectedProgram==='mundos'&&Number(mundosAdults||0)<=0)return 'Indicá al menos un adulto que paga para Mundos Perdidos.';return ''}
+function resetForNewReservation(){['responsible','phone','email','email2','school','address','course','topics','accessibility'].forEach(id=>$(id).value='');$('accept').checked=false;selectedDate=null;selectedSlot=null;selectedDates=[];els.formMessage.className='notice hidden';els.formMessage.textContent='';els.ticketBox.classList.add('hidden');els.ticketBox.innerHTML='';els.newBtn.classList.add('hidden');lastTicketData=null;if(els.submitBtn){els.submitBtn.disabled=false;els.submitBtn.classList.remove('sent','sending');els.submitBtn.textContent='Enviar solicitud de reserva';}const db=$('downloadCurrentTicket'),pb=$('printCurrentTicket');if(db){db.disabled=true;db.classList.add('hidden')}if(pb){pb.disabled=true;pb.classList.add('hidden')}if(selectedProgram==='hielo'){hieloWorkshop='';hieloSelected=[];hieloState={hielo_gigantes:{participants:0,dates:[]},hielo_exploradores:{participants:0,dates:[]}};}if(selectedProgram==='mundos'&&mundosMode==='Días particulares')mundosSelected=[];renderSpecialOptions();renderCalendar();updateSummary();$('propuesta').scrollIntoView({behavior:'smooth'})}
 function openWorkshopModal(html){const m=$('workshopModal'),c=$('workshopModalContent');if(!m||!c)return;c.innerHTML=html;m.classList.add('show');m.setAttribute('aria-hidden','false')}
 function closeWorkshopModal(){const m=$('workshopModal');if(!m)return;m.classList.remove('show');m.setAttribute('aria-hidden','true')}
 $('prevMonth').onclick=()=>{viewDate.setMonth(viewDate.getMonth()-1);selectedDate=null;selectedSlot=null;loadAvailability();updateSummary()};
@@ -1431,4 +1468,3 @@ window.selectProgram=selectProgram;window.handleSlotClick=handleSlotClick;window
 <div aria-hidden="true" class="modal-backdrop" id="workshopModal"><div class="modal-card"><button class="ghost modal-close" onclick="closeWorkshopModal()" type="button">Cerrar</button><div id="workshopModalContent"></div></div></div>
 </body>
 </html>
-
