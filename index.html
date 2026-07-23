@@ -571,6 +571,51 @@ body[data-program="hielo"] .hielo-calendar-quota{font-size:.7rem!important;min-w
 .hielo-summary-chip small{font-weight:700;color:#4e665f;line-height:1.2;text-align:left}
 body[data-program="hielo"] #fecha{display:none!important}
 @media(max-width:760px){.hielo-workshop-picker{grid-template-columns:1fr!important}.hielo-selected-panel{padding:11px}.hielo-program-day{padding:10px!important}.hielo-program-title{font-size:.94rem}.hielo-program-description{font-size:.81rem}}
+/* AVISO TEMPORAL: CUPOS COMPLETOS */
+.soldout-alert{
+  position:sticky;
+  top:10px;
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  margin:0 0 20px;
+  padding:17px 22px;
+  border:3px solid #8f2f24;
+  border-radius:18px;
+  background:linear-gradient(135deg,#fff0c9,#ffd36c);
+  color:#44220e;
+  box-shadow:0 12px 30px rgba(54,38,20,.28);
+  text-align:left;
+}
+.soldout-label{
+  flex:none;
+  padding:7px 11px;
+  border-radius:999px;
+  background:#8f2f24;
+  color:#fff;
+  font-size:.78rem;
+  font-weight:950;
+  letter-spacing:.08em;
+}
+.soldout-alert strong{
+  display:block;
+  font-family:Georgia,serif;
+  font-size:clamp(1.2rem,2.3vw,1.7rem);
+  line-height:1.05;
+}
+.soldout-alert .soldout-text{
+  display:block;
+  margin-top:5px;
+  font-weight:700;
+}
+@media(max-width:640px){
+  .soldout-alert{
+    align-items:flex-start;
+    padding:14px;
+  }
+}
 </style>
 </head>
 <body data-program="escuelas">
@@ -578,6 +623,15 @@ body[data-program="hielo"] #fecha{display:none!important}
 <header class="hero"><div class="hero-main"><a href="https://museoscasso.com.ar/" target="_blank" rel="noopener" title="Ir al sitio oficial del Museo Scasso">
   <img alt="Museo de Ciencias Naturales A. Scasso" class="logo" src="assets/logo-scasso.png"/>
 </a><h1>Reservá tu visita</h1><p class="lead">Elegí una propuesta, revisá la disponibilidad y completá los datos. Al enviar, recibís un código único para identificar el pago.</p></div></header>
+<!-- AVISO TEMPORAL: CUPOS COMPLETOS -->
+<div class="soldout-alert" role="status">
+  <div class="soldout-label">IMPORTANTE</div>
+  <div>
+    <strong>Talleres “Exploradores de la Edad del Hielo”: cupos completos</strong>
+    <span class="soldout-text">Todas las vacantes se encuentran pre-reservadas y en proceso de confirmación de pago. Si se libera algún lugar, volverá a habilitarse en el calendario. Las demás visitas y actividades continúan disponibles según disponibilidad.</span>
+  </div>
+</div>
+<!-- FIN DEL AVISO TEMPORAL -->
 <main class="layout"><section>
 <div class="panel" id="propuesta"><h2>1. ¿Qué querés reservar?</h2><p class="guide-note"><strong>Hacé clic en una tarjeta</strong> para elegir la propuesta. Después completá las opciones que aparezcan debajo.</p><div class="cards" id="programCards"></div></div>
 <div class="panel" id="detalles"><h2>Características de la propuesta</h2><div class="notice success" id="programInfo"></div><div class="toolbar"><div><label for="modality">Modalidad / experiencia</label><select id="modality"></select></div><div><label for="groupType" id="groupTypeLabel">Tipo de institución o visitante</label><select id="groupType"></select></div></div><div class="two"><div><label for="people" id="peopleLabel">Cantidad de participantes</label><input id="people" type="number" min="1" max="300" step="1" value="25" inputmode="numeric"/></div><div id="guidesWrap"><label for="guides">Docentes / acompañantes</label><input id="guides" type="number" min="0" max="60" step="1" value="2" inputmode="numeric"/></div></div><div class="special-box hidden" id="specialOptions"></div><div class="notice danger hidden" id="capacityWarning"></div><div class="info-grid"><div class="info-card"><strong id="serviceTitle">Servicios y comodidad</strong><span id="serviceText">Espacios calefaccionados, sanitarios, áreas de espera y propuestas guiadas con ingreso puntual.</span></div><div class="info-card"><strong>Accesibilidad</strong> <span id="accessibilityInfo">El museo está en planta alta, con espacios expositivos en un mismo nivel. Hay ascensor para personas con dificultad para subir escaleras o usuarios de silla de ruedas.</span></div></div></div>
