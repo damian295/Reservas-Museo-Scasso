@@ -626,7 +626,10 @@ const MIN_ADVANCE_DAYS = 7;
 const firstBookableDate = new Date(today); firstBookableDate.setDate(firstBookableDate.getDate()+MIN_ADVANCE_DAYS);
 function programRequiresAdvance(program){return ['escuelas','publico','explorando'].includes(String(program||selectedProgram||''));}
 function isTooSoon(s,program=selectedProgram){const d=parseDate(s);d.setHours(0,0,0,0);return programRequiresAdvance(program) && d<firstBookableDate;}
-function isBookableDate(s,program=selectedProgram){return !isPast(s) && !isTooSoon(s,program);}
+function isBookableDate(s,program=selectedProgram){
+  if(program==='hielo')return new Date(s+'T15:00:00-03:00').getTime()>Date.now();
+  return !isPast(s) && !isTooSoon(s,program);
+} 
 const HIELO_DATES = ['2026-07-27','2026-07-28','2026-07-29','2026-07-30','2026-07-31'];
 const MUNDOS_DATES = ['2026-09-26','2026-09-27','2026-09-28','2026-09-29','2026-09-30','2026-10-01','2026-10-02','2026-10-03','2026-10-04'];
 const programs = {
@@ -831,8 +834,8 @@ function dateChoiceLabelForHielo(item, idx, key){
   const parts=String(item.titulo||'').split(' · '), activityTitle=parts.length>1?parts.slice(1).join(' · '):String(item.titulo||'');
   return `<span class="hielo-program-date">${fmtDate(item.fecha)}</span><strong class="hielo-program-title">${icon}${activityTitle}</strong><span class="hielo-program-description">${item.detalle}</span><span class="meta meta-time">15:00 a 16:00 · 60 minutos · hasta ${capacity} cupos</span>`
 }
-function getHieloWorkshopRemaining(key,date){const src=(hieloAvailabilityByWorkshop&&hieloAvailabilityByWorkshop[key])?hieloAvailabilityByWorkshop[key]:{};const slots=src&&src[date]?src[date]:[];if(!slots||!slots.length)return null;const first=normalizeSlotForRender(slots[0]);const remaining=first.remaining;return (remaining!==null&&remaining!==undefined&&remaining!==''&&Number.isFinite(Number(remaining)))?Math.max(0,Number(remaining)):null}
-function hieloQuotaHtml(key,date){
+function getHieloWorkshopRemaining(key,date){if(!isBookableDate(date,'hielo'))return 0;const src=(hieloAvailabilityByWorkshop&&hieloAvailabilityByWorkshop[key])?hieloAvailabilityByWorkshop[key]:{};const slots=src&&src[date]?src[date]:[];if(!slots||!slots.length)return null;const first=normalizeSlotForRender(slots[0]);const remaining=first.remaining;return (remaining!==null&&remaining!==undefined&&remaining!==''&&Number.isFinite(Number(remaining)))?Math.max(0,Number(remaining)):null}
+    function hieloQuotaHtml(key,date){
   const remaining=getHieloWorkshopRemaining(key,date);
   const attrs=' data-hielo-quota-key="'+key+'" data-hielo-quota-date="'+date+'"';
   if(remaining===null)return '<span class="hielo-availability-chip"'+attrs+'>Cargando cupos</span>';
