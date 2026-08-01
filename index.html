@@ -635,7 +635,7 @@ const MUNDOS_DATES = ['2026-09-26','2026-09-27','2026-09-28','2026-09-29','2026-
 const programs = {
   escuelas:{title:'Visitas escolares',tag:'Docentes',visual:'escuelas',featured:true,intro:'Visitas para grupos escolares, con reserva previa y propuestas adaptadas al nivel educativo.',bullets:['Lunes a jueves','Turnos de una hora','Hasta 30 alumnos por grupo'],note:'Actividad principal del museo',startMonth:new Date(2026,6,1),capacity:30,priceMode:'por_alumno',accepting:true,groupOptions:[['publica','Escuela pública / institución pública'],['privada','Escuela privada / institución privada'],['otro','Otro grupo educativo']],prices:{publica:2200,privada:3600,otro:3600},modalities:[{name:'Libre',multiplier:1},{name:'Guiada con métodos tradicionales',multiplier:1},{name:'Guiada con tema específico',multiplier:1}]},
   publico:{title:'Público general',tag:'Desde octubre',visual:'publico',intro:'Turnos para visitantes individuales, familias y turismo, con inscripción previa los días viernes.',bullets:['Previsto para octubre de 2026','Día viernes','Cupo: 14 personas por turno'],note:'Apertura con turno previo',startMonth:new Date(2026,9,1),capacity:14,priceMode:'por_persona',accepting:true,groupOptions:[['general','Público general / familia'],['menor','Menor'],['otro','Otro grupo']],prices:{general:3600,menor:2200,otro:3600},modalities:[{name:'Recorrido general sin guía',multiplier:1},{name:'Recorrido familiar con guía',multiplier:1.35},{name:'Recorrido especial temático',multiplier:1.75}]},
-  hielo:{title:'Talleres de la Edad del Hielo',tag:'27 al 31 de julio',visual:'hielo',intro:'Dos talleres por edad. El valor baja progresivamente al seleccionar más días y se suma descuento por cantidad de participantes.',bullets:['3 a 6 años y 7 a 12 años','15:00 a 16:00','Descuento progresivo automático'],note:'Taller especial para infancias',startMonth:new Date(2026,6,1),capacity:20,priceMode:'hielo_multi',accepting:true,groupOptions:[['general','Participante individual']],prices:{dias:{1:10000,2:18000,3:25000,4:31000,5:35000},descuento2:0.10,descuento3:0.15},modalities:[{name:'Seleccionar taller y fechas',multiplier:1}]},
+  hielo:{title:'Talleres de la Edad del Hielo',tag:'Actividad finalizada',visual:'hielo',intro:'El ciclo de vacaciones de invierno 2026 finalizó el 31 de julio. Actualmente no se reciben nuevas inscripciones.',bullets:['Actividad finalizada','Vacaciones de invierno 2026','Nuevas propuestas próximamente'],note:'Inscripciones cerradas',startMonth:new Date(2026,6,1),capacity:20,priceMode:'hielo_multi',accepting:false,groupOptions:[['general','Participante individual']],prices:{dias:{1:10000,2:18000,3:25000,4:31000,5:35000},descuento2:0.10,descuento3:0.15},modalities:[{name:'Actividad finalizada',multiplier:1}]},
   mundos:{title:'Jornadas Mundos Perdidos',tag:'26 sep – 4 oct',visual:'mundos',intro:'Jornadas de difusión científica dedicadas al río Paraná, con actividades intensivas de fin de semana y propuestas durante la semana.',bullets:['26/09 al 04/10/2026','Pase completo con descuento','Días particulares a elección'],note:'Evento especial anual',startMonth:new Date(2026,8,1),capacity:250,priceMode:'mundos_multi',accepting:true,groupOptions:[['general','Público general']],prices:{semana:3000,finde:5000,pase:30000},modalities:[{name:'Pase completo',fixedPrice:30000},{name:'Días particulares',multiplier:1}]},
   explorando:{title:'Explorando por el tiempo',tag:'Próximamente',visual:'explorando',intro:'Experiencia de realidad inmersiva con proyecciones y audio. Simula una máquina del tiempo.',bullets:['Capacidad: 20 personas','Proyecciones y audio','Programas temporales a definir'],note:'Fechas a anunciar',startMonth:new Date(2026,9,1),capacity:20,priceMode:'a_confirmar',accepting:false,groupOptions:[['general','Público general / escuela / grupo']],prices:{general:0},modalities:[{name:'Programa pasado'},{name:'Programa presente'},{name:'Programa futuro'}]}
 };
@@ -868,6 +868,11 @@ function numberInput(id,value,min,max,extra=''){return `<input type="number" id=
 function renderSpecialOptions(){
   els.special.classList.add('hidden');els.special.innerHTML='';
   if(selectedProgram==='hielo'){
+    if(!programs.hielo.accepting){
+      els.special.classList.remove('hidden');
+      els.special.innerHTML='<div class="hielo-no-selection"><strong>Actividad finalizada.</strong><br>Los talleres de la Edad del Hielo correspondientes a las vacaciones de invierno 2026 finalizaron el 31 de julio. Actualmente no se reciben nuevas inscripciones.</div>';
+      return;
+    }
     ensureHieloState();
     els.special.classList.remove('hidden');
     const pickerHtml=hieloKeys().map(key=>{
@@ -1116,7 +1121,7 @@ async function loadAvailability(){
   updateTodayButton();
   const p=programs[selectedProgram];
   currentDaySummary={};
-  if(!p.accepting){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('<strong>Próximamente.</strong> Esta experiencia todavía no tiene fechas habilitadas.');return;}
+  if(!p.accepting){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage(selectedProgram==='hielo'?'<strong>Actividad finalizada.</strong> El ciclo de vacaciones de invierno 2026 terminó y no recibe nuevas inscripciones.':'<strong>Próximamente.</strong> Esta experiencia todavía no tiene fechas habilitadas.');return;}
   if(selectedProgram==='mundos'){availabilityStatus='ok';currentSlots=local;renderCalendar();showAvailabilityMessage('');return;}
   if(selectedProgram==='hielo'){await loadAvailabilityHielo();return;}
 
