@@ -1130,7 +1130,7 @@ const month=ym(viewDate);
 const selectedProgramAtRequest=selectedProgram;
 availabilityStatus='checking';
 const escuelasFastMode = selectedProgram==='escuelas';
-const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdating(local,program,month);  if(!keptVisible){currentSlots=escuelasFastMode?disableLocalSlots(local):local;renderCalendar();}
+const keptVisible=keepVisibleAvailabilityWhileUpdating(local,program,month);  if(!keptVisible){currentSlots=escuelasFastMode?disableLocalSlots(local):local;renderCalendar();}
   showAvailabilityMessage('<div class="availability-loading"><span class="loading-spinner" aria-hidden="true"></span><span><strong>Verificando disponibilidad real…</strong><br>Estamos consultando los cupos actualizados antes de habilitar la selección. Esto puede tardar unos segundos. No cierres la página.</span></div>','availability-soft');
   const requestStamp=program+'|'+month+'|'+Date.now();
   loadAvailability._last=requestStamp;
@@ -1148,7 +1148,7 @@ const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdatin
     return true;
   }
 
-  const cached=escuelasFastMode ? null : readAvailabilityLocalCache(program,month);
+  const cached=readAvailabilityLocalCache(program,month);
   let shown=false;
   if(cached){ shown=applyPayload(cached) || shown; }
 
@@ -1174,7 +1174,7 @@ const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdatin
     try{
       const livePayload=await Promise.race([
         livePromise,
-        new Promise(resolve=>setTimeout(()=>resolve(null),AVAILABILITY_TIMEOUT_MS))
+        new Promise(resolve=>setTimeout(()=>resolve(null),escuelasFastMode?8000:AVAILABILITY_TIMEOUT_MS))
       ]);
       if(livePayload) shown=applyPayload(livePayload);
     }catch(e){}
@@ -1183,11 +1183,19 @@ const keptVisible=escuelasFastMode ? false : keepVisibleAvailabilityWhileUpdatin
   livePromise.then(payload=>{ if(payload&&payload.ok&&payload.slots) applyPayload(payload); }).catch(()=>{});
   if(selectedProgram!==selectedProgramAtRequest)return;
   if(!shown){
-    // No publicar cupos inventados. Si ya había cupos visibles de una lectura anterior,
-    // se conservan hasta que llegue una nueva lectura; si no había, se muestran los horarios base.
-    availabilityStatus='reference';
-    if(!keptVisible){currentSlots=escuelasFastMode?disableLocalSlots(local):local;currentDaySummary={};renderCalendar();}
-    showAvailabilityMessage(escuelasFastMode?'No se pudo verificar la disponibilidad real. Recargá la página o consultanos por WhatsApp antes de reservar.':'', 'availability-soft');
+    if(escuelasFastMode){
+      // La reserva se valida nuevamente en Apps Script antes de registrarse.
+      // Así la demora de lectura no bloquea al visitante ni puede crear una doble reserva.
+      availabilityStatus='provisional';
+      currentSlots=local;
+      currentDaySummary={};
+      renderCalendar();
+      showAvailabilityMessage('<strong>La actualización está demorando.</strong> Podés elegir un horario; al enviar, el sistema vuelve a verificarlo y no registra la solicitud si ya está ocupado.','availability-soft');
+    }else{
+      availabilityStatus='reference';
+      if(!keptVisible){currentSlots=local;currentDaySummary={};renderCalendar();}
+      showAvailabilityMessage('', 'availability-soft');
+    }
   }
 }
 function mergeLocalAndRemoteSlots_(local,remote){
