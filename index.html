@@ -703,7 +703,7 @@ function backendProgram(){return selectedProgram==='hielo'?hieloBackendProgram()
 const PROGRAM_SITES={
   publico:'https://museoscasso.com.ar/',
   hielo:'https://edad-hielo.museoscasso.com.ar/',
-  mundos:'https://mundos-perdidos.museoscasso.com.ar/',
+  mundos:'https://mundos-perdidos.museoscasso.com.ar/reservas/',
   explorando:'https://explorando-tiempo.museoscasso.com.ar/'
 };
 function initCards(){
@@ -732,6 +732,7 @@ function setPeople(p,g,level){
   if($('level'))$('level').value=level;
 }
 function selectProgram(key){
+  if(key==='mundos'){window.location.href=PROGRAM_SITES.mundos;return;}
   selectedProgram=key;
   document.body.dataset.program=key;viewDate=new Date(programs[key].startMonth);selectedDate=null;selectedSlot=null;selectedDates=[];mobileFocusedDate=null;
   if(key==='escuelas') setPeople(25,2,'Inicial');
